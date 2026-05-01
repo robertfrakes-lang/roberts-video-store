@@ -85,7 +85,6 @@
 
         // --- USER CONFIG ---
         const TMDB_API_KEY = "6ae71efb7a4441efb04f3b77764589c3"; 
-        // Using your specific Published ID
         const PUBLISHED_ID = "2PACX-1vTpYGbkD2AliFONt-zZz2wXOHXR1z6nHRdnF00KW-e66JwK18f_NIXtYp0cGC1s1JzeIG3UznGt6b0w";
         const ROTATION_SPEED = 15000; 
 
@@ -138,7 +137,6 @@
             const parseCSV = (csvText) => {
                 const lines = csvText.split('\n');
                 return lines.map(line => {
-                    // This regex handles commas inside quotes correctly
                     const parts = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                     if (!parts[0]) return null;
                     return {
@@ -148,42 +146,47 @@
                 }).filter(m => m && m.title && !m.title.toLowerCase().includes("title"));
             };
 
+            // Shuffle Function (Fisher-Yates)
+            const shuffleArray = (array) => {
+                let currentIndex = array.length,  randomIndex;
+                while (currentIndex != 0) {
+                    randomIndex = Math.floor(Math.random() * currentIndex);
+                    currentIndex--;
+                    [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+                }
+                return array;
+            };
+
             useEffect(() => {
                 const init = async () => {
                     try {
-                        // Published CSV Link format
                         const csvUrl = `https://docs.google.com/spreadsheets/d/e/${PUBLISHED_ID}/pub?output=csv`;
-                        
                         const response = await fetch(csvUrl);
-                        if (!response.ok) throw new Error(`Google rejected the request (Status ${response.status}). Check if the sheet is still 'Published to Web'.`);
+                        if (!response.ok) throw new Error(`Google rejected the request (Status ${response.status})`);
                         
                         const csvText = await response.text();
                         const movieRows = parseCSV(csvText);
 
-                        if (movieRows.length === 0) throw new Error("Spreadsheet connected, but no movie titles found in Column A.");
+                        if (movieRows.length === 0) throw new Error("No movie titles found.");
 
-                        // Enrich with TMDB
-                        const enriched = await Promise.all(movieRows.slice(0, 40).map(async (m) => {
+                        const enriched = await Promise.all(movieRows.slice(0, 100).map(async (m) => {
                             try {
                                 const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(m.title)}`);
                                 const data = await res.json();
                                 const movie = data.results?.[0];
                                 if (!movie) return null;
-                                
                                 const details = await (await fetch(`https://api.themoviedb.org/3/movie/${movie.id}?api_key=${TMDB_API_KEY}&append_to_response=images`)).json();
-                                return { 
-                                    ...m, 
-                                    ...movie, 
-                                    logo: details.images?.logos?.find(l => l.iso_639_1 === 'en' || !l.iso_639_1)?.file_path 
-                                };
+                                return { ...m, ...movie, logo: details.images?.logos?.find(l => l.iso_639_1 === 'en' || !l.iso_639_1)?.file_path };
                             } catch (e) { return null; }
                         }));
                         
                         const filtered = enriched.filter(m => m !== null);
-                        if (filtered.length === 0) throw new Error("Connected to Sheet, but TMDB couldn't find matches for your titles.");
+                        if (filtered.length === 0) throw new Error("No TMDB matches found.");
                         
-                        setMovies(filtered);
-                        setActiveMovie(filtered[0]);
+                        // SHUFFLE BEFORE SETTING STATE
+                        const shuffledMovies = shuffleArray([...filtered]);
+                        setMovies(shuffledMovies);
+                        setActiveMovie(shuffledMovies[0]);
                         setLoading(false);
                     } catch (e) { 
                         setErrorMsg(e.message);
@@ -214,18 +217,12 @@
                 <div className="h-screen bg-black flex flex-col items-center justify-center p-10 text-center">
                     <div className="vcr-text text-2xl text-red-500 mb-6 neon-pink uppercase">Tape Error</div>
                     <div className="vcr-text text-lg opacity-80 max-w-2xl mb-8 leading-relaxed">{errorMsg}</div>
-                    <div className="bg-white/5 p-8 rounded border border-white/10 text-left max-w-xl text-xs text-gray-400 space-y-4 font-sans">
-                        <p className="text-white font-bold text-sm">Possible Fixes:</p>
-                        <p>1. Check if the movie titles are in <strong>Column A</strong>.</p>
-                        <p>2. Ensure the first row isn't blank.</p>
-                        <p>3. Refresh the page to try again.</p>
-                    </div>
                 </div>
             );
 
             if (loading) return (
                 <div className="h-screen bg-black flex flex-col items-center justify-center vcr-text text-3xl">
-                    <div className="animate-pulse tracking-widest text-white">TRACKING TAPE...</div>
+                    <div className="animate-pulse tracking-widest text-white uppercase">Loading Vault...</div>
                 </div>
             );
 
@@ -233,8 +230,6 @@
                 <div className="h-screen w-screen bg-black overflow-hidden relative">
                     <RetroLogo />
                     <RetroClock />
-
-                    {/* Dynamic Background */}
                     <div className="absolute inset-0">
                         <img 
                             key={`bg-${activeMovie?.id}`}
@@ -243,11 +238,8 @@
                         />
                         <div className="absolute inset-0 bg-black/50" />
                     </div>
-
-                    {/* Main Visual Content */}
                     <div className="relative z-10 h-full flex flex-col items-center justify-center p-12 lg:p-24">
                         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20 max-w-7xl w-full animate-in fade-in duration-1000">
-                            
                             <div className="relative flex-shrink-0 shadow-[0_0_80px_rgba(0,0,0,1)]">
                                 <img 
                                     key={`poster-${activeMovie?.id}`}
@@ -261,7 +253,6 @@
                                     {activeMovie?.label}
                                 </div>
                             </div>
-
                             <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-8 lg:space-y-12 flex-1">
                                 {activeMovie?.logo ? (
                                     <img 
@@ -272,14 +263,12 @@
                                 ) : (
                                     <h1 className="text-6xl lg:text-8xl font-black uppercase italic tracking-tighter text-white drop-shadow-2xl">{activeMovie?.title}</h1>
                                 )}
-                                
                                 <p className="text-xl lg:text-3xl text-white/90 leading-snug italic font-medium max-w-2xl drop-shadow-lg line-clamp-4 lg:line-clamp-none">
                                     "{activeMovie?.overview}"
                                 </p>
                             </div>
                         </div>
                     </div>
-
                     <FilmGrain />
                 </div>
             );
