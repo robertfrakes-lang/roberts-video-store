@@ -83,7 +83,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // --- USER CONFIG ---
+        // --- CONFIGURATION ---
         const TMDB_API_KEY = "6ae71efb7a4441efb04f3b77764589c3"; 
         const PUBLISHED_ID = "2PACX-1vTpYGbkD2AliFONt-zZz2wXOHXR1z6nHRdnF00KW-e66JwK18f_NIXtYp0cGC1s1JzeIG3UznGt6b0w";
         const ROTATION_SPEED = 15000; 
@@ -141,7 +141,8 @@
                     if (!parts[0]) return null;
                     return {
                         title: parts[0].replace(/"/g, '').trim(),
-                        label: parts[1]?.replace(/"/g, '').trim() || "CLASSIC SELECTION"
+                        // Pull collection/box set info from "Format" column (Column B)
+                        collectionInfo: parts[1]?.replace(/"/g, '').trim() || null
                     };
                 }).filter(m => m && m.title && !m.title.toLowerCase().includes("title"));
             };
@@ -168,7 +169,7 @@
 
                         if (allRows.length === 0) throw new Error("No movie titles found.");
 
-                        // NEW LOGIC: Shuffle ALL 1500+ movies FIRST
+                        // Shuffle full library first
                         const randomSelection = shuffleArray([...allRows]).slice(0, 150);
 
                         const enriched = await Promise.all(randomSelection.map(async (m) => {
@@ -215,14 +216,14 @@
 
             if (errorMsg) return (
                 <div className="h-screen bg-black flex flex-col items-center justify-center p-10 text-center">
-                    <div className="neon-pink text-3xl mb-6 uppercase tracking-widest">Tape Error</div>
+                    <div className="neon-pink text-3xl mb-6 uppercase tracking-widest font-bold">Tape Error</div>
                     <div className="vcr-text text-lg opacity-80 max-w-2xl">{errorMsg}</div>
                 </div>
             );
 
             if (loading) return (
                 <div className="h-screen bg-black flex flex-col items-center justify-center text-3xl">
-                    <div className="neon-blue animate-pulse tracking-[0.3em] uppercase">Loading Vault...</div>
+                    <div className="neon-blue animate-pulse tracking-[0.3em] uppercase font-bold">Loading Vault...</div>
                 </div>
             );
 
@@ -243,6 +244,7 @@
                     <div className="relative z-10 h-full flex flex-col items-center justify-center p-12 lg:p-24">
                         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-24 max-w-7xl w-full animate-in fade-in duration-1000">
                             
+                            {/* Poster shifted up */}
                             <div className="relative flex-shrink-0 shadow-[0_0_100px_rgba(0,0,0,1)] transform -translate-y-8 lg:-translate-y-12">
                                 <img 
                                     key={`poster-${activeMovie?.id}`}
@@ -259,13 +261,19 @@
                                         className="h-28 lg:h-52 object-contain brightness-125 drop-shadow-[0_0_20px_rgba(0,0,0,0.8)]"
                                     />
                                 ) : (
-                                    <h1 className="text-6xl lg:text-8xl font-black uppercase italic tracking-tighter text-white drop-shadow-2xl">{activeMovie?.title}</h1>
+                                    <h1 className="text-6xl lg:text-8xl font-black uppercase italic tracking-tighter text-white drop-shadow-2xl leading-tight">{activeMovie?.title}</h1>
                                 )}
                                 
-                                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
+                                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6">
                                     <div className="neon-blue text-4xl lg:text-6xl font-black tracking-tighter opacity-90">
                                         {activeMovie?.release_date?.split('-')[0]}
                                     </div>
+                                    {/* Collection Info Logic from Format Column */}
+                                    {activeMovie?.collectionInfo && (
+                                        <div className="text-white/60 font-bold italic text-sm lg:text-xl uppercase tracking-[0.2em] self-center pl-4 border-l border-white/20">
+                                            {activeMovie.collectionInfo}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <p className="text-xl lg:text-2xl text-white/80 leading-snug italic font-medium max-w-2xl drop-shadow-lg line-clamp-4 lg:line-clamp-none">
