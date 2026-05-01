@@ -15,12 +15,13 @@
         .neon-pink { color: #fff; text-shadow: 0 0 5px #fff, 0 0 10px #ff00de, 0 0 20px #ff00de; }
         .neon-blue { color: #fff; text-shadow: 0 0 5px #fff, 0 0 10px #00d2ff, 0 0 20px #00d2ff; }
         
+        /* Fixed Video Hardware Layering */
         .video-container { 
             border: 2px solid #00d2ff; 
             box-shadow: 0 0 20px #00d2ff; 
-            transform: translateZ(0); 
-            background: black;
-            will-change: transform;
+            background: #000;
+            isolation: isolate; /* Ensures a dedicated rendering layer */
+            transform: translateZ(0);
         }
 
         @keyframes flicker { 0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; } 20%, 24%, 55% { opacity: 0.85; } }
@@ -33,8 +34,6 @@
         
         @keyframes pulse-bg { 0%, 100% { transform: scale(1.05) translate(-50%, -50%); opacity: 0.3; } 50% { transform: scale(1.1) translate(-50%, -50%); opacity: 0.5; } }
         .bg-pulse { position: absolute; top: 50%; left: 50%; min-width: 110%; min-height: 110%; animation: pulse-bg 25s infinite ease-in-out; }
-        
-        .detail-overlay { background: rgba(0,0,0,0.92); }
     </style>
 </head>
 <body>
@@ -121,19 +120,14 @@
                 } catch (e) { console.error("Extra data fetch failed", e); }
             };
 
-            // Enhanced History Management for Fire TV
             useEffect(() => {
-                // Anchor the history on initial load
                 window.history.replaceState({view: 'screensaver'}, '');
-                
-                const handlePopState = (event) => {
-                    // If the user hits back and we were in detail mode, close it
+                const handlePopState = () => {
                     if (viewMode === 'detail') {
                         setViewMode('screensaver');
                         setExtraData(null);
                     }
                 };
-                
                 window.addEventListener('popstate', handlePopState);
                 return () => window.removeEventListener('popstate', handlePopState);
             }, [viewMode]);
@@ -175,43 +169,36 @@
             useEffect(() => {
                 const handleKey = (e) => {
                     if (movies.length === 0) return;
-                    
                     if (viewMode === 'screensaver') {
                         if (e.keyCode === 39) setIndex(prev => (prev + 1) % movies.length);
                         if (e.keyCode === 37) setIndex(prev => (prev - 1 + movies.length) % movies.length);
-                        if (e.keyCode === 13) { // SELECT
-                            // Push new state into history stack
+                        if (e.keyCode === 13) { 
                             window.history.pushState({view: 'detail'}, ''); 
                             setViewMode('detail');
                             fetchExtraInfo(activeMovie.id);
                         }
                     } else {
-                        // Exit detail mode triggers
-                        // KeyCode 8 = Back arrow button
-                        // KeyCode 179 = Play/Pause button
-                        // KeyCode 27 = Escape
                         if (e.keyCode === 8 || e.keyCode === 27 || e.keyCode === 179) { 
                             e.preventDefault(); 
                             e.stopPropagation();
-                            // Force history to move back instead of closing app
                             window.history.back();
                         }
                     }
                 };
-                window.addEventListener('keydown', handleKey, true); // Use capture phase
+                window.addEventListener('keydown', handleKey, true);
                 return () => window.removeEventListener('keydown', handleKey, true);
             }, [movies, viewMode, activeMovie]);
 
             useEffect(() => { if (movies[index]) setActiveMovie(movies[index]); }, [index, movies]);
 
-            if (errorMsg) return <div className="h-screen bg-black flex flex-col items-center justify-center p-10 text-center"><div className="neon-pink text-3xl mb-6 uppercase tracking-widest font-bold">Tape Error</div><div className="vcr-text text-lg opacity-80 max-w-2xl">{errorMsg}</div></div>;
-            if (loading) return <div className="h-screen bg-black flex flex-col items-center justify-center text-3xl"><div className="neon-blue animate-pulse tracking-[0.3em] uppercase font-bold">Loading Vault...</div></div>;
+            if (errorMsg) return <div className="h-screen bg-black flex flex-col items-center justify-center p-10 text-center font-sans"><div className="neon-pink text-3xl mb-6 uppercase tracking-widest font-bold">Tape Error</div><div className="vcr-text text-lg opacity-80 max-w-2xl">{errorMsg}</div></div>;
+            if (loading) return <div className="h-screen bg-black flex flex-col items-center justify-center text-3xl font-sans"><div className="neon-blue animate-pulse tracking-[0.3em] uppercase font-bold">Loading Vault...</div></div>;
 
             const tmdbYear = activeMovie?.release_date?.split('-')[0];
             const shouldShowCollection = activeMovie?.collectionInfo && activeMovie.collectionInfo !== tmdbYear;
 
             return (
-                <div className="h-screen w-screen bg-black overflow-hidden relative">
+                <div className="h-screen w-screen bg-black overflow-hidden relative font-sans">
                     <div className={viewMode === 'detail' ? 'hidden' : ''}>
                         <div className="vhs-tracking"></div>
                     </div>
@@ -220,12 +207,13 @@
                     <RetroClock hidden={viewMode === 'detail'} />
                     
                     <div className="absolute inset-0">
+                        {/* PERFORMANCE FIX: Completely hide background layers during video playback */}
                         <img 
                             key={`bg-${activeMovie?.id}`} 
                             src={`https://image.tmdb.org/t/p/original${activeMovie?.backdrop_path}`} 
-                            className={`object-cover blur-2xl transition-all duration-1000 ${viewMode === 'detail' ? 'opacity-20 scale-100' : 'bg-pulse opacity-100'}`} 
+                            className={`object-cover blur-2xl transition-all duration-1000 ${viewMode === 'detail' ? 'hidden' : 'bg-pulse opacity-100'}`} 
                         />
-                        <div className={`absolute inset-0 transition-colors duration-1000 ${viewMode === 'detail' ? 'detail-overlay' : 'bg-black/60'}`} />
+                        <div className={`absolute inset-0 transition-colors duration-1000 ${viewMode === 'detail' ? 'bg-black' : 'bg-black/60'}`} />
                     </div>
 
                     <div className="relative z-10 h-full flex flex-col items-center justify-center p-12 lg:p-24">
