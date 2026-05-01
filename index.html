@@ -18,7 +18,6 @@
             cursor: none;
         }
 
-        /* VCR OSD Styles */
         .vcr-text {
             color: #ebebeb;
             text-shadow: 2px 2px #000, -1px -1px #000, 0 0 10px rgba(255,255,255,0.4);
@@ -26,7 +25,6 @@
             letter-spacing: 2px;
         }
 
-        /* Neon Sign Effects */
         .neon-pink {
             color: #fff;
             text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px #ff00de, 0 0 30px #ff00de, 0 0 40px #ff00de;
@@ -42,7 +40,6 @@
         }
         .neon-flicker { animation: flicker 3s infinite; }
 
-        /* VHS Tracking Line */
         @keyframes tracking {
             0% { top: -10%; opacity: 0; }
             10% { opacity: 0.2; }
@@ -58,7 +55,6 @@
             animation: tracking 8s infinite linear;
         }
 
-        /* Scanlines */
         .scanlines {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -87,10 +83,12 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
+        // --- USER CONFIG ---
         const TMDB_API_KEY = "6ae71efb7a4441efb04f3b77764589c3"; 
         const GOOGLE_SHEET_ID = "1qpyC0XzvTcKT6EISywvqESX3A0MwQoFDE8p-Bll4hps"; 
+        // TIP: Double-check that this name matches the TAB name at the bottom of your sheet exactly.
         const SHEET_NAME = "Roberts video store application database"; 
-        const ROTATION_SPEED = 15000; // 15 seconds per movie
+        const ROTATION_SPEED = 15000; 
 
         const RetroLogo = () => (
             <div className="fixed top-8 right-12 z-[110] flex flex-col items-center neon-flicker scale-75 lg:scale-100 origin-top-right">
@@ -136,39 +134,63 @@
             const [index, setIndex] = useState(0);
             const [loading, setLoading] = useState(true);
             const [activeMovie, setActiveMovie] = useState(null);
+            const [errorMsg, setErrorMsg] = useState(null);
 
             useEffect(() => {
                 const init = async () => {
                     try {
                         const cleanId = GOOGLE_SHEET_ID.includes('/d/') ? GOOGLE_SHEET_ID.split('/d/')[1].split('/')[0] : GOOGLE_SHEET_ID;
-                        const url = `https://docs.google.com/spreadsheets/d/${cleanId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
-                        const response = await fetch(url);
-                        const text = await response.text();
-                        const json = JSON.parse(text.substring(47, text.length - 2));
-                        const rows = json.table.rows.map(row => ({ 
-                            title: row.c[0]?.v, 
-                            label: row.c[1]?.v || "CLASSIC SELECTION" 
-                        })).filter(r => r.title);
                         
-                        const enriched = await Promise.all(rows.slice(0, 50).map(async (m) => {
-                            const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(m.title)}`);
-                            const data = await res.json();
-                            const movie = data.results?.[0];
-                            if (!movie) return null;
-                            const details = await (await fetch(`https://api.themoviedb.org/3/movie/${movie.id}?api_key=${TMDB_API_KEY}&append_to_response=images`)).json();
+                        // 1. Fetch from Sheets
+                        const sheetUrl = `https://docs.google.com/spreadsheets/d/${cleanId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
+                        const response = await fetch(sheetUrl);
+                        if (!response.ok) throw new Error("Could not connect to Google Sheet.");
+                        
+                        const text = await response.text();
+                        // Handle the Google JSON format
+                        const jsonStart = text.indexOf('{');
+                        const jsonEnd = text.lastIndexOf('}');
+                        if (jsonStart === -1 || jsonEnd === -1) throw new Error("Invalid response from Google Sheets. Check Tab Name.");
+                        
+                        const json = JSON.parse(text.substring(jsonStart, jsonEnd + 1));
+                        const rows = json.table.rows.map(row => {
+                            if (!row.c || !row.c[0]) return null;
                             return { 
-                                ...m, 
-                                ...movie, 
-                                logo: details.images?.logos?.find(l => l.iso_639_1 === 'en' || !l.iso_639_1)?.file_path 
+                                title: row.c[0]?.v, 
+                                label: row.c[1]?.v || "CLASSIC SELECTION" 
                             };
+                        }).filter(r => r && r.title);
+
+                        if (rows.length === 0) throw new Error("No movie titles found in your spreadsheet (Column A).");
+
+                        // 2. Fetch from TMDB
+                        const enriched = await Promise.all(rows.slice(0, 50).map(async (m) => {
+                            try {
+                                const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(m.title)}`);
+                                const data = await res.json();
+                                const movie = data.results?.[0];
+                                if (!movie) return null;
+                                
+                                const details = await (await fetch(`https://api.themoviedb.org/3/movie/${movie.id}?api_key=${TMDB_API_KEY}&append_to_response=images`)).json();
+                                return { 
+                                    ...m, 
+                                    ...movie, 
+                                    logo: details.images?.logos?.find(l => l.iso_639_1 === 'en' || !l.iso_639_1)?.file_path 
+                                };
+                            } catch (e) {
+                                return null;
+                            }
                         }));
                         
                         const filtered = enriched.filter(m => m !== null);
+                        if (filtered.length === 0) throw new Error("No movie matches found on TMDB. Check your titles.");
+                        
                         setMovies(filtered);
-                        if (filtered.length > 0) setActiveMovie(filtered[0]);
+                        setActiveMovie(filtered[0]);
                         setLoading(false);
                     } catch (e) { 
-                        console.error("Initialization Error:", e);
+                        console.error(e);
+                        setErrorMsg(e.message);
                         setLoading(false);
                     }
                 };
@@ -183,8 +205,8 @@
 
             useEffect(() => {
                 const handleKey = (e) => {
-                    if (e.keyCode === 39) setIndex(prev => (prev + 1) % movies.length); // Right
-                    if (e.keyCode === 37) setIndex(prev => (prev - 1 + movies.length) % movies.length); // Left
+                    if (e.keyCode === 39) setIndex(prev => (prev + 1) % movies.length);
+                    if (e.keyCode === 37) setIndex(prev => (prev - 1 + movies.length) % movies.length);
                 };
                 window.addEventListener('keydown', handleKey);
                 return () => window.removeEventListener('keydown', handleKey);
@@ -192,10 +214,20 @@
 
             useEffect(() => { if (movies[index]) setActiveMovie(movies[index]); }, [index, movies]);
 
+            if (errorMsg) return (
+                <div className="h-screen bg-black flex flex-col items-center justify-center p-10 text-center">
+                    <div className="vcr-text text-2xl text-red-500 mb-6 jitter-fx">SYSTEM ERROR</div>
+                    <div className="vcr-text text-lg opacity-80 max-w-xl">{errorMsg}</div>
+                    <div className="mt-10 text-xs text-white/20 uppercase tracking-widest">
+                        Check Sheet ID: {GOOGLE_SHEET_ID.substring(0, 8)}...<br/>
+                        Check Tab Name: "{SHEET_NAME}"
+                    </div>
+                </div>
+            );
+
             if (loading) return (
                 <div className="h-screen bg-black flex flex-col items-center justify-center vcr-text text-3xl">
                     <div className="animate-pulse tracking-widest">TRACKING TAPE...</div>
-                    <div className="text-sm mt-4 opacity-40">ROBERTS VIDEO V2.0</div>
                 </div>
             );
 
@@ -218,32 +250,26 @@
                     <div className="relative z-10 h-full flex flex-col items-center justify-center p-12 lg:p-24">
                         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20 max-w-7xl w-full animate-in fade-in duration-1000">
                             
-                            {/* Movie Poster with Authenticity Stickers */}
                             <div className="relative flex-shrink-0 shadow-[0_0_80px_rgba(0,0,0,1)]">
                                 <img 
                                     key={`poster-${activeMovie?.id}`}
                                     src={`https://image.tmdb.org/t/p/w780${activeMovie?.poster_path}`}
                                     className="h-[60vh] lg:h-[75vh] w-auto border-[6px] border-white/10 rounded-sm"
-                                    alt="Poster"
                                 />
-                                {/* Rental Property Sticker */}
                                 <div className="absolute top-6 -right-6 lg:-right-10 bg-yellow-400 text-black px-3 py-1 font-black transform rotate-12 shadow-xl border-2 border-black text-[10px] lg:text-xs uppercase tracking-tighter">
                                     PROPERTY OF ROBERT'S
                                 </div>
-                                {/* Boutique Label Tag */}
                                 <div className="absolute -bottom-4 -left-6 bg-red-600 text-white px-5 py-2 font-black italic transform -rotate-3 shadow-2xl text-xs lg:text-sm uppercase">
                                     {activeMovie?.label}
                                 </div>
                             </div>
 
-                            {/* Logo & Overview */}
                             <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-8 lg:space-y-12 flex-1">
                                 {activeMovie?.logo ? (
                                     <img 
                                         key={`logo-${activeMovie?.id}`}
                                         src={`https://image.tmdb.org/t/p/w500${activeMovie.logo}`} 
                                         className="h-28 lg:h-52 object-contain brightness-125 drop-shadow-[0_0_30px_rgba(0,0,0,0.5)]"
-                                        alt="Movie Logo"
                                     />
                                 ) : (
                                     <h1 className="text-6xl lg:text-8xl font-black uppercase italic tracking-tighter text-white drop-shadow-2xl">{activeMovie?.title}</h1>
