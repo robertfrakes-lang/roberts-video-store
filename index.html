@@ -22,7 +22,7 @@
         .scanlines { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%); background-size: 100% 4px; z-index: 100; pointer-events: none; }
         @keyframes pulse-bg { 0%, 100% { transform: scale(1.05) translate(-50%, -50%); opacity: 0.3; } 50% { transform: scale(1.1) translate(-50%, -50%); opacity: 0.5; } }
         .bg-pulse { position: absolute; top: 50%; left: 50%; min-width: 110%; min-height: 110%; animation: pulse-bg 25s infinite ease-in-out; }
-        .detail-overlay { background: radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.95) 100%); }
+        .detail-overlay { background: radial-gradient(circle at center, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.9) 100%); }
     </style>
 </head>
 <body>
@@ -74,7 +74,7 @@
             const [loading, setLoading] = useState(true);
             const [activeMovie, setActiveMovie] = useState(null);
             const [errorMsg, setErrorMsg] = useState(null);
-            const [viewMode, setViewMode] = useState('screensaver'); // 'screensaver' or 'detail'
+            const [viewMode, setViewMode] = useState('screensaver'); 
             const [extraData, setExtraData] = useState(null);
 
             const parseCSV = (csvText) => {
@@ -147,15 +147,21 @@
             useEffect(() => {
                 const handleKey = (e) => {
                     if (movies.length === 0) return;
+                    
                     if (viewMode === 'screensaver') {
                         if (e.keyCode === 39) setIndex(prev => (prev + 1) % movies.length);
                         if (e.keyCode === 37) setIndex(prev => (prev - 1 + movies.length) % movies.length);
-                        if (e.keyCode === 13) { // SELECT / ENTER
+                        if (e.keyCode === 13) { // SELECT
                             setViewMode('detail');
                             fetchExtraInfo(activeMovie.id);
                         }
                     } else {
-                        if (e.keyCode === 27 || e.keyCode === 8) { // BACK / ESCAPE
+                        // Exit detail mode triggers
+                        // KeyCode 8 = Back arrow button
+                        // KeyCode 179 = Play/Pause button
+                        // KeyCode 27 = Escape
+                        if (e.keyCode === 8 || e.keyCode === 27 || e.keyCode === 179) { 
+                            e.preventDefault(); 
                             setViewMode('screensaver');
                             setExtraData(null);
                         }
@@ -175,6 +181,7 @@
 
             return (
                 <div className="h-screen w-screen bg-black overflow-hidden relative">
+                    {/* Only show logo/clock in screensaver mode */}
                     <RetroLogo hidden={viewMode === 'detail'} />
                     <RetroClock hidden={viewMode === 'detail'} />
                     
@@ -184,7 +191,8 @@
                     </div>
 
                     <div className="relative z-10 h-full flex flex-col items-center justify-center p-12 lg:p-24">
-                        <div className={`flex flex-col lg:flex-row items-center gap-12 lg:gap-24 max-w-7xl w-full transition-all duration-700 ${viewMode === 'detail' ? 'scale-90 opacity-40 blur-sm translate-y-[-20%]' : 'animate-in fade-in'}`}>
+                        {/* Screensaver Content */}
+                        <div className={`flex flex-col lg:flex-row items-center gap-12 lg:gap-24 max-w-7xl w-full transition-all duration-700 ${viewMode === 'detail' ? 'scale-75 opacity-0 blur-xl pointer-events-none' : 'animate-in fade-in'}`}>
                             <div className="relative flex-shrink-0 shadow-[0_0_100px_rgba(0,0,0,1)] transform -translate-y-8 lg:-translate-y-12">
                                 <img key={`poster-${activeMovie?.id}`} src={`https://image.tmdb.org/t/p/w780${activeMovie?.poster_path}`} className="h-[60vh] lg:h-[75vh] w-auto border-[4px] border-white/5 rounded-sm" />
                             </div>
@@ -201,35 +209,38 @@
 
                         {/* Interactive Detail Overlay */}
                         {viewMode === 'detail' && (
-                            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-10 lg:p-20 animate-in fade-in zoom-in duration-500">
-                                <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-12 items-center bg-black/40 backdrop-blur-3xl p-10 lg:p-16 rounded-3xl border border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.8)]">
-                                    <div className="space-y-8">
-                                        <div className="space-y-2">
-                                            <div className="neon-blue text-5xl lg:text-6xl font-black italic tracking-tighter">{activeMovie.title}</div>
-                                            <div className="flex gap-4 text-white/50 text-sm font-bold tracking-[0.3em] uppercase items-center">
+                            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-6 lg:p-12 animate-in fade-in zoom-in duration-500">
+                                {/* Increased max-width and shifted grid ratio for larger trailer */}
+                                <div className="w-full max-w-[95vw] grid grid-cols-1 lg:grid-cols-[1fr_1.8fr] gap-8 lg:gap-16 items-center bg-black/60 backdrop-blur-3xl p-8 lg:p-12 rounded-3xl border border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.8)]">
+                                    <div className="space-y-6 lg:space-y-10">
+                                        <div className="space-y-4">
+                                            <div className="neon-blue text-4xl lg:text-6xl font-black italic tracking-tighter leading-tight">{activeMovie.title}</div>
+                                            <div className="flex flex-wrap gap-4 text-white/50 text-xs lg:text-sm font-bold tracking-[0.3em] uppercase items-center">
                                                 <span>{tmdbYear}</span>
                                                 <span className="w-1.5 h-1.5 bg-white/20 rounded-full" />
-                                                <span className="neon-pink">{extraData?.genres || "Action"}</span>
+                                                <span className="neon-pink">{extraData?.genres || "Loading..."}</span>
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-8 vcr-text text-xs lg:text-sm">
+                                        <div className="grid grid-cols-2 gap-6 lg:gap-10 vcr-text text-[10px] lg:text-sm">
                                             <div className="space-y-2">
                                                 <div className="text-white/30 uppercase tracking-widest">Director</div>
                                                 <div className="text-white/80">{extraData?.director || "Loading..."}</div>
                                             </div>
                                             <div className="space-y-2">
-                                                <div className="text-white/30 uppercase tracking-widest">Format</div>
-                                                <div className="text-white/80">{activeMovie.collectionInfo || "Standard Vault"}</div>
+                                                <div className="text-white/30 uppercase tracking-widest">Vault Info</div>
+                                                <div className="text-white/80">{activeMovie.collectionInfo || "Main Collection"}</div>
                                             </div>
                                             <div className="col-span-2 space-y-2">
                                                 <div className="text-white/30 uppercase tracking-widest">Starring</div>
                                                 <div className="text-white/80">{extraData?.cast || "Loading..."}</div>
                                             </div>
                                         </div>
-                                        <div className="text-lg text-white/70 italic leading-relaxed font-medium">"{activeMovie.overview}"</div>
-                                        <div className="pt-4 text-white/20 text-[10px] tracking-[0.5em] uppercase">Press [BACK] to Return to Store</div>
+                                        <div className="text-base lg:text-lg text-white/70 italic leading-relaxed font-medium line-clamp-6 lg:line-clamp-none">"{activeMovie.overview}"</div>
+                                        <div className="pt-4 text-white/20 text-[10px] tracking-[0.5em] uppercase">Press [BACK] or [PLAY/PAUSE] to Return</div>
                                     </div>
-                                    <div className="aspect-video w-full bg-black rounded-xl overflow-hidden neon-border-blue relative shadow-2xl">
+                                    
+                                    {/* Enlarged Trailer Window */}
+                                    <div className="aspect-video w-full bg-black rounded-xl overflow-hidden neon-border-blue relative shadow-2xl scale-105 lg:scale-100">
                                         {extraData?.trailerId ? (
                                             <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${extraData.trailerId}?autoplay=1&mute=0&controls=0&modestbranding=1&rel=0`} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
                                         ) : (
