@@ -20,41 +20,44 @@
 
         .vcr-text {
             color: #ebebeb;
-            text-shadow: 2px 2px #000, -1px -1px #000, 0 0 10px rgba(255,255,255,0.4);
-            filter: blur(0.3px);
+            text-shadow: 1px 1px #000;
+            filter: blur(0.2px);
             letter-spacing: 2px;
         }
 
+        /* Toned down Neon Sign Effects */
         .neon-pink {
             color: #fff;
-            text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px #ff00de, 0 0 30px #ff00de, 0 0 40px #ff00de;
+            text-shadow: 0 0 5px #fff, 0 0 10px #ff00de, 0 0 20px #ff00de;
         }
         .neon-blue {
             color: #fff;
-            text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px #00d2ff, 0 0 30px #00d2ff, 0 0 40px #00d2ff;
+            text-shadow: 0 0 5px #fff, 0 0 10px #00d2ff, 0 0 20px #00d2ff;
         }
 
         @keyframes flicker {
             0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; }
-            20%, 24%, 55% { opacity: 0.7; }
+            20%, 24%, 55% { opacity: 0.85; }
         }
-        .neon-flicker { animation: flicker 3s infinite; }
+        .neon-flicker { animation: flicker 4s infinite; }
 
+        /* VHS Tracking Line */
         @keyframes tracking {
             0% { top: -10%; opacity: 0; }
-            10% { opacity: 0.2; }
-            90% { opacity: 0.2; }
+            10% { opacity: 0.1; }
+            90% { opacity: 0.1; }
             100% { top: 110%; opacity: 0; }
         }
         .vhs-tracking {
             position: fixed;
             left: 0; width: 100%; height: 2px;
-            background: rgba(255,255,255,0.2);
-            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+            background: rgba(255,255,255,0.15);
+            box-shadow: 0 0 8px rgba(255,255,255,0.3);
             z-index: 150;
-            animation: tracking 8s infinite linear;
+            animation: tracking 12s infinite linear;
         }
 
+        /* Scanlines */
         .scanlines {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -65,13 +68,13 @@
         }
 
         @keyframes pulse-bg {
-            0%, 100% { transform: scale(1.05) translate(-50%, -50%); opacity: 0.35; }
-            50% { transform: scale(1.1) translate(-50%, -50%); opacity: 0.55; }
+            0%, 100% { transform: scale(1.05) translate(-50%, -50%); opacity: 0.3; }
+            50% { transform: scale(1.1) translate(-50%, -50%); opacity: 0.5; }
         }
         .bg-pulse {
             position: absolute; top: 50%; left: 50%;
             min-width: 110%; min-height: 110%;
-            animation: pulse-bg 20s infinite ease-in-out;
+            animation: pulse-bg 25s infinite ease-in-out;
         }
     </style>
 </head>
@@ -93,17 +96,17 @@
                 <svg width="220" height="100" viewBox="0 0 220 100">
                     <defs>
                         <filter id="glow">
-                            <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+                            <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
                             <feMerge>
                                 <feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/>
                             </feMerge>
                         </filter>
                     </defs>
-                    <path d="M10 10 L210 10 L210 90 L10 90 Z" fill="none" stroke="#ff00de" strokeWidth="3" filter="url(#glow)" />
+                    <path d="M10 10 L210 10 L210 90 L10 90 Z" fill="none" stroke="#ff00de" strokeWidth="2" filter="url(#glow)" style={{opacity: 0.7}} />
                     <text x="50%" y="42" textAnchor="middle" fill="#fff" style={{fontFamily: 'Archivo Black', fontSize: '18px'}} filter="url(#glow)" className="neon-pink">ROBERT'S</text>
                     <text x="50%" y="72" textAnchor="middle" fill="#fff" style={{fontFamily: 'Archivo Black', fontSize: '24px'}} filter="url(#glow)" className="neon-blue">VIDEO STORE</text>
                 </svg>
-                <div className="text-[10px] tracking-[0.6em] vcr-text opacity-60 mt-[-10px]">PREMIUM RENTALS</div>
+                <div className="text-[10px] tracking-[0.6em] vcr-text opacity-40 mt-[-10px]">PREMIUM RENTALS</div>
             </div>
         );
 
@@ -115,12 +118,12 @@
             }, []);
 
             return (
-                <div className="fixed bottom-8 left-12 z-[110] vcr-text text-2xl lg:text-3xl space-y-1 opacity-70">
-                    <div className="flex items-center gap-4">
-                        <span className="text-sm border border-white/40 px-2 py-0.5 font-bold">VCR1</span>
+                <div className="fixed bottom-8 left-12 z-[110] space-y-1 opacity-90 neon-flicker">
+                    <div className="flex items-center gap-4 neon-blue text-2xl lg:text-4xl font-bold">
+                        <span className="text-xs border border-white/40 px-2 py-0.5 tracking-tighter opacity-70">VCR1</span>
                         <span>{time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }).toUpperCase()}</span>
                     </div>
-                    <div className="text-lg lg:text-xl opacity-60">
+                    <div className="text-lg lg:text-2xl neon-pink opacity-80 tracking-widest pl-12">
                         {time.toLocaleDateString([], { month: 'short', day: '2-digit', year: 'numeric' }).toUpperCase()}
                     </div>
                 </div>
@@ -146,7 +149,6 @@
                 }).filter(m => m && m.title && !m.title.toLowerCase().includes("title"));
             };
 
-            // Shuffle Function (Fisher-Yates)
             const shuffleArray = (array) => {
                 let currentIndex = array.length,  randomIndex;
                 while (currentIndex != 0) {
@@ -162,12 +164,10 @@
                     try {
                         const csvUrl = `https://docs.google.com/spreadsheets/d/e/${PUBLISHED_ID}/pub?output=csv`;
                         const response = await fetch(csvUrl);
-                        if (!response.ok) throw new Error(`Google rejected the request (Status ${response.status})`);
+                        if (!response.ok) throw new Error(`Tape Access Denied (Status ${response.status})`);
                         
                         const csvText = await response.text();
                         const movieRows = parseCSV(csvText);
-
-                        if (movieRows.length === 0) throw new Error("No movie titles found.");
 
                         const enriched = await Promise.all(movieRows.slice(0, 100).map(async (m) => {
                             try {
@@ -181,9 +181,8 @@
                         }));
                         
                         const filtered = enriched.filter(m => m !== null);
-                        if (filtered.length === 0) throw new Error("No TMDB matches found.");
+                        if (filtered.length === 0) throw new Error("No matches found in Vault.");
                         
-                        // SHUFFLE BEFORE SETTING STATE
                         const shuffledMovies = shuffleArray([...filtered]);
                         setMovies(shuffledMovies);
                         setActiveMovie(shuffledMovies[0]);
@@ -215,14 +214,14 @@
 
             if (errorMsg) return (
                 <div className="h-screen bg-black flex flex-col items-center justify-center p-10 text-center">
-                    <div className="vcr-text text-2xl text-red-500 mb-6 neon-pink uppercase">Tape Error</div>
-                    <div className="vcr-text text-lg opacity-80 max-w-2xl mb-8 leading-relaxed">{errorMsg}</div>
+                    <div className="neon-pink text-3xl mb-6 uppercase tracking-widest">Tape Error</div>
+                    <div className="vcr-text text-lg opacity-80 max-w-2xl">{errorMsg}</div>
                 </div>
             );
 
             if (loading) return (
-                <div className="h-screen bg-black flex flex-col items-center justify-center vcr-text text-3xl">
-                    <div className="animate-pulse tracking-widest text-white uppercase">Loading Vault...</div>
+                <div className="h-screen bg-black flex flex-col items-center justify-center text-3xl">
+                    <div className="neon-blue animate-pulse tracking-[0.3em] uppercase">Loading Vault...</div>
                 </div>
             );
 
@@ -230,45 +229,58 @@
                 <div className="h-screen w-screen bg-black overflow-hidden relative">
                     <RetroLogo />
                     <RetroClock />
+                    
+                    {/* Background */}
                     <div className="absolute inset-0">
                         <img 
                             key={`bg-${activeMovie?.id}`}
                             src={`https://image.tmdb.org/t/p/original${activeMovie?.backdrop_path}`}
                             className="bg-pulse object-cover blur-2xl"
                         />
-                        <div className="absolute inset-0 bg-black/50" />
+                        <div className="absolute inset-0 bg-black/60" />
                     </div>
+
+                    {/* Content */}
                     <div className="relative z-10 h-full flex flex-col items-center justify-center p-12 lg:p-24">
-                        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20 max-w-7xl w-full animate-in fade-in duration-1000">
-                            <div className="relative flex-shrink-0 shadow-[0_0_80px_rgba(0,0,0,1)]">
+                        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-24 max-w-7xl w-full animate-in fade-in duration-1000">
+                            
+                            {/* Poster */}
+                            <div className="relative flex-shrink-0 shadow-[0_0_100px_rgba(0,0,0,1)]">
                                 <img 
                                     key={`poster-${activeMovie?.id}`}
                                     src={`https://image.tmdb.org/t/p/w780${activeMovie?.poster_path}`}
-                                    className="h-[60vh] lg:h-[75vh] w-auto border-[6px] border-white/10 rounded-sm"
+                                    className="h-[60vh] lg:h-[75vh] w-auto border-[4px] border-white/5 rounded-sm"
                                 />
-                                <div className="absolute top-6 -right-6 lg:-right-10 bg-yellow-400 text-black px-3 py-1 font-black transform rotate-12 shadow-xl border-2 border-black text-[10px] lg:text-xs uppercase tracking-tighter">
-                                    PROPERTY OF ROBERT'S
-                                </div>
-                                <div className="absolute -bottom-4 -left-6 bg-red-600 text-white px-5 py-2 font-black italic transform -rotate-3 shadow-2xl text-xs lg:text-sm uppercase">
+                                {/* Label Tag */}
+                                <div className="absolute -bottom-4 -left-6 bg-red-600 text-white px-6 py-2 font-black italic transform -rotate-3 shadow-2xl text-xs lg:text-sm uppercase tracking-wider">
                                     {activeMovie?.label}
                                 </div>
                             </div>
-                            <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-8 lg:space-y-12 flex-1">
+
+                            {/* Info Side */}
+                            <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6 lg:space-y-10 flex-1">
                                 {activeMovie?.logo ? (
                                     <img 
                                         key={`logo-${activeMovie?.id}`}
                                         src={`https://image.tmdb.org/t/p/w500${activeMovie.logo}`} 
-                                        className="h-28 lg:h-52 object-contain brightness-125 drop-shadow-[0_0_30px_rgba(0,0,0,0.5)]"
+                                        className="h-28 lg:h-52 object-contain brightness-125 drop-shadow-[0_0_20px_rgba(0,0,0,0.8)]"
                                     />
                                 ) : (
                                     <h1 className="text-6xl lg:text-8xl font-black uppercase italic tracking-tighter text-white drop-shadow-2xl">{activeMovie?.title}</h1>
                                 )}
-                                <p className="text-xl lg:text-3xl text-white/90 leading-snug italic font-medium max-w-2xl drop-shadow-lg line-clamp-4 lg:line-clamp-none">
+                                
+                                {/* Release Year - Made Bigger */}
+                                <div className="neon-blue text-4xl lg:text-6xl font-black tracking-tighter opacity-90">
+                                    {activeMovie?.release_date?.split('-')[0]}
+                                </div>
+
+                                <p className="text-xl lg:text-2xl text-white/80 leading-snug italic font-medium max-w-2xl drop-shadow-lg line-clamp-4 lg:line-clamp-none">
                                     "{activeMovie?.overview}"
                                 </p>
                             </div>
                         </div>
                     </div>
+
                     <FilmGrain />
                 </div>
             );
@@ -286,7 +298,7 @@
                     const data = imageData.data;
                     for (let i = 0; i < data.length; i += 4) {
                         const noise = Math.random() * 255;
-                        data[i] = noise; data[i+1] = noise; data[i+2] = noise; data[i+3] = 20;
+                        data[i] = noise; data[i+1] = noise; data[i+2] = noise; data[i+3] = 15;
                     }
                     ctx.putImageData(imageData, 0, 0);
                     requestAnimationFrame(render);
@@ -294,7 +306,7 @@
                 window.addEventListener('resize', resize);
                 resize(); render();
             }, []);
-            return <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 120, opacity: 0.35 }} />;
+            return <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 120, opacity: 0.3 }} />;
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
