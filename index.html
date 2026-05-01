@@ -14,7 +14,15 @@
         .vcr-text { color: #ebebeb; text-shadow: 1px 1px #000; filter: blur(0.2px); letter-spacing: 2px; }
         .neon-pink { color: #fff; text-shadow: 0 0 5px #fff, 0 0 10px #ff00de, 0 0 20px #ff00de; }
         .neon-blue { color: #fff; text-shadow: 0 0 5px #fff, 0 0 10px #00d2ff, 0 0 20px #00d2ff; }
-        .neon-border-blue { border: 2px solid #00d2ff; box-shadow: 0 0 15px #00d2ff; }
+        
+        /* Video hardware acceleration fix for Fire TV */
+        .video-container { 
+            border: 2px solid #00d2ff; 
+            box-shadow: 0 0 20px #00d2ff; 
+            transform: translateZ(0); /* Force hardware layer */
+            background: black;
+        }
+
         @keyframes flicker { 0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; } 20%, 24%, 55% { opacity: 0.85; } }
         .neon-flicker { animation: flicker 4s infinite; }
         @keyframes tracking { 0% { top: -10%; opacity: 0; } 10% { opacity: 0.1; } 90% { opacity: 0.1; } 100% { top: 110%; opacity: 0; } }
@@ -22,7 +30,9 @@
         .scanlines { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%); background-size: 100% 4px; z-index: 100; pointer-events: none; }
         @keyframes pulse-bg { 0%, 100% { transform: scale(1.05) translate(-50%, -50%); opacity: 0.3; } 50% { transform: scale(1.1) translate(-50%, -50%); opacity: 0.5; } }
         .bg-pulse { position: absolute; top: 50%; left: 50%; min-width: 110%; min-height: 110%; animation: pulse-bg 25s infinite ease-in-out; }
-        .detail-overlay { background: radial-gradient(circle at center, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.9) 100%); }
+        
+        /* Simplified overlay for better Fire TV performance */
+        .detail-overlay { background: rgba(0,0,0,0.85); }
     </style>
 </head>
 <body>
@@ -110,6 +120,18 @@
                 } catch (e) { console.error("Extra data fetch failed", e); }
             };
 
+            // History Trick for Back Button
+            useEffect(() => {
+                const handlePopState = (event) => {
+                    if (viewMode === 'detail') {
+                        setViewMode('screensaver');
+                        setExtraData(null);
+                    }
+                };
+                window.addEventListener('popstate', handlePopState);
+                return () => window.removeEventListener('popstate', handlePopState);
+            }, [viewMode]);
+
             useEffect(() => {
                 const init = async () => {
                     try {
@@ -152,18 +174,15 @@
                         if (e.keyCode === 39) setIndex(prev => (prev + 1) % movies.length);
                         if (e.keyCode === 37) setIndex(prev => (prev - 1 + movies.length) % movies.length);
                         if (e.keyCode === 13) { // SELECT
+                            window.history.pushState({view: 'detail'}, ''); // Add history entry
                             setViewMode('detail');
                             fetchExtraInfo(activeMovie.id);
                         }
                     } else {
                         // Exit detail mode triggers
-                        // KeyCode 8 = Back arrow button
-                        // KeyCode 179 = Play/Pause button
-                        // KeyCode 27 = Escape
                         if (e.keyCode === 8 || e.keyCode === 27 || e.keyCode === 179) { 
                             e.preventDefault(); 
-                            setViewMode('screensaver');
-                            setExtraData(null);
+                            window.history.back(); // Trigger popstate
                         }
                     }
                 };
@@ -181,18 +200,16 @@
 
             return (
                 <div className="h-screen w-screen bg-black overflow-hidden relative">
-                    {/* Only show logo/clock in screensaver mode */}
                     <RetroLogo hidden={viewMode === 'detail'} />
                     <RetroClock hidden={viewMode === 'detail'} />
                     
                     <div className="absolute inset-0">
-                        <img key={`bg-${activeMovie?.id}`} src={`https://image.tmdb.org/t/p/original${activeMovie?.backdrop_path}`} className="bg-pulse object-cover blur-2xl" />
+                        <img key={`bg-${activeMovie?.id}`} src={`https://image.tmdb.org/t/p/original${activeMovie?.backdrop_path}`} className={`bg-pulse object-cover blur-2xl transition-opacity duration-1000 ${viewMode === 'detail' ? 'opacity-20' : 'opacity-100'}`} />
                         <div className={`absolute inset-0 transition-colors duration-1000 ${viewMode === 'detail' ? 'detail-overlay' : 'bg-black/60'}`} />
                     </div>
 
                     <div className="relative z-10 h-full flex flex-col items-center justify-center p-12 lg:p-24">
-                        {/* Screensaver Content */}
-                        <div className={`flex flex-col lg:flex-row items-center gap-12 lg:gap-24 max-w-7xl w-full transition-all duration-700 ${viewMode === 'detail' ? 'scale-75 opacity-0 blur-xl pointer-events-none' : 'animate-in fade-in'}`}>
+                        <div className={`flex flex-col lg:flex-row items-center gap-12 lg:gap-24 max-w-7xl w-full transition-all duration-700 ${viewMode === 'detail' ? 'scale-50 opacity-0 blur-2xl pointer-events-none' : 'animate-in fade-in'}`}>
                             <div className="relative flex-shrink-0 shadow-[0_0_100px_rgba(0,0,0,1)] transform -translate-y-8 lg:-translate-y-12">
                                 <img key={`poster-${activeMovie?.id}`} src={`https://image.tmdb.org/t/p/w780${activeMovie?.poster_path}`} className="h-[60vh] lg:h-[75vh] w-auto border-[4px] border-white/5 rounded-sm" />
                             </div>
@@ -207,11 +224,9 @@
                             </div>
                         </div>
 
-                        {/* Interactive Detail Overlay */}
                         {viewMode === 'detail' && (
                             <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-6 lg:p-12 animate-in fade-in zoom-in duration-500">
-                                {/* Increased max-width and shifted grid ratio for larger trailer */}
-                                <div className="w-full max-w-[95vw] grid grid-cols-1 lg:grid-cols-[1fr_1.8fr] gap-8 lg:gap-16 items-center bg-black/60 backdrop-blur-3xl p-8 lg:p-12 rounded-3xl border border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.8)]">
+                                <div className="w-full max-w-[95vw] grid grid-cols-1 lg:grid-cols-[1fr_1.8fr] gap-8 lg:gap-16 items-center bg-black p-8 lg:p-12 rounded-3xl border border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.8)]">
                                     <div className="space-y-6 lg:space-y-10">
                                         <div className="space-y-4">
                                             <div className="neon-blue text-4xl lg:text-6xl font-black italic tracking-tighter leading-tight">{activeMovie.title}</div>
@@ -239,10 +254,18 @@
                                         <div className="pt-4 text-white/20 text-[10px] tracking-[0.5em] uppercase">Press [BACK] or [PLAY/PAUSE] to Return</div>
                                     </div>
                                     
-                                    {/* Enlarged Trailer Window */}
-                                    <div className="aspect-video w-full bg-black rounded-xl overflow-hidden neon-border-blue relative shadow-2xl scale-105 lg:scale-100">
+                                    <div className="aspect-video w-full video-container rounded-xl overflow-hidden relative shadow-2xl scale-105 lg:scale-100">
                                         {extraData?.trailerId ? (
-                                            <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${extraData.trailerId}?autoplay=1&mute=0&controls=0&modestbranding=1&rel=0`} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
+                                            <iframe 
+                                                key={extraData.trailerId}
+                                                width="100%" 
+                                                height="100%" 
+                                                src={`https://www.youtube.com/embed/${extraData.trailerId}?autoplay=1&mute=0&controls=0&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&origin=${window.location.origin}`} 
+                                                frameBorder="0" 
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                                allowFullScreen
+                                                style={{backgroundColor: 'black'}}
+                                            ></iframe>
                                         ) : (
                                             <div className="absolute inset-0 flex items-center justify-center vcr-text opacity-40 uppercase tracking-widest">Loading Trailer...</div>
                                         )}
