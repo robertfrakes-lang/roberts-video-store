@@ -265,13 +265,10 @@
                                     <h1 className="text-6xl lg:text-8xl font-black uppercase italic tracking-tighter text-white drop-shadow-2xl">{activeMovie?.title}</h1>
                                 )}
                                 
-                                {/* Release Year and Label Info */}
+                                {/* Release Year - Only the Neon one */}
                                 <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
                                     <div className="neon-blue text-4xl lg:text-6xl font-black tracking-tighter opacity-90">
                                         {activeMovie?.release_date?.split('-')[0]}
-                                    </div>
-                                    <div className="text-white/60 font-bold italic text-sm lg:text-xl uppercase tracking-widest self-center pl-2">
-                                        {activeMovie?.label}
                                     </div>
                                 </div>
 
