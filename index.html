@@ -85,8 +85,8 @@
 
         // --- USER CONFIG ---
         const TMDB_API_KEY = "6ae71efb7a4441efb04f3b77764589c3"; 
-        const GOOGLE_SHEET_ID = "1qpyC0XzvTcKT6EISywvqESX3A0MwQoFDE8p-Bll4hps"; 
-        const SHEET_NAME = "Roberts video store application database"; 
+        // Using your specific Published ID
+        const PUBLISHED_ID = "2PACX-1vTpYGbkD2AliFONt-zZz2wXOHXR1z6nHRdnF00KW-e66JwK18f_NIXtYp0cGC1s1JzeIG3UznGt6b0w";
         const ROTATION_SPEED = 15000; 
 
         const RetroLogo = () => (
@@ -138,57 +138,32 @@
             const parseCSV = (csvText) => {
                 const lines = csvText.split('\n');
                 return lines.map(line => {
+                    // This regex handles commas inside quotes correctly
                     const parts = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                     if (!parts[0]) return null;
                     return {
                         title: parts[0].replace(/"/g, '').trim(),
                         label: parts[1]?.replace(/"/g, '').trim() || "CLASSIC SELECTION"
                     };
-                }).filter(m => m && m.title && m.title !== "Title"); // Filter header
+                }).filter(m => m && m.title && !m.title.toLowerCase().includes("title"));
             };
 
             useEffect(() => {
                 const init = async () => {
                     try {
-                        const cleanId = GOOGLE_SHEET_ID.includes('/d/') ? GOOGLE_SHEET_ID.split('/d/')[1].split('/')[0] : GOOGLE_SHEET_ID;
+                        // Published CSV Link format
+                        const csvUrl = `https://docs.google.com/spreadsheets/d/e/${PUBLISHED_ID}/pub?output=csv`;
                         
-                        let movieRows = [];
+                        const response = await fetch(csvUrl);
+                        if (!response.ok) throw new Error(`Google rejected the request (Status ${response.status}). Check if the sheet is still 'Published to Web'.`);
+                        
+                        const csvText = await response.text();
+                        const movieRows = parseCSV(csvText);
 
-                        // TRY METHOD 1: JSON (The Clean Way)
-                        try {
-                            const jsonUrl = `https://docs.google.com/spreadsheets/d/${cleanId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
-                            const response = await fetch(jsonUrl);
-                            
-                            if (response.ok) {
-                                const text = await response.text();
-                                const jsonStart = text.indexOf('{');
-                                const jsonEnd = text.lastIndexOf('}');
-                                if (jsonStart !== -1 && jsonEnd !== -1) {
-                                    const json = JSON.parse(text.substring(jsonStart, jsonEnd + 1));
-                                    movieRows = json.table.rows.map(row => ({
-                                        title: row.c[0]?.v,
-                                        label: row.c[1]?.v || "CLASSIC SELECTION"
-                                    })).filter(r => r && r.title);
-                                }
-                            }
-                        } catch (e) {
-                            console.warn("JSON method failed, trying CSV...");
-                        }
+                        if (movieRows.length === 0) throw new Error("Spreadsheet connected, but no movie titles found in Column A.");
 
-                        // TRY METHOD 2: CSV FALLBACK (If Method 1 failed or returned nothing)
-                        if (movieRows.length === 0) {
-                            const csvUrl = `https://docs.google.com/spreadsheets/d/${cleanId}/export?format=csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
-                            const response = await fetch(csvUrl);
-                            if (!response.ok) throw new Error(`Google rejected the CSV request (Status ${response.status}). Ensure the sheet is 'Published to the Web'.`);
-                            
-                            const csvText = await response.text();
-                            movieRows = parseCSV(csvText);
-                        }
-
-                        if (movieRows.length === 0) throw new Error("Connected to Google, but found no movie titles. Ensure titles are in Column A.");
-
-                        // 2. Enrich with TMDB
-                        const enriched = await Promise.all(movieRows.slice(0, 50).map(async (m) => {
+                        // Enrich with TMDB
+                        const enriched = await Promise.all(movieRows.slice(0, 40).map(async (m) => {
                             try {
                                 const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(m.title)}`);
                                 const data = await res.json();
@@ -196,7 +171,11 @@
                                 if (!movie) return null;
                                 
                                 const details = await (await fetch(`https://api.themoviedb.org/3/movie/${movie.id}?api_key=${TMDB_API_KEY}&append_to_response=images`)).json();
-                                return { ...m, ...movie, logo: details.images?.logos?.find(l => l.iso_639_1 === 'en' || !l.iso_639_1)?.file_path };
+                                return { 
+                                    ...m, 
+                                    ...movie, 
+                                    logo: details.images?.logos?.find(l => l.iso_639_1 === 'en' || !l.iso_639_1)?.file_path 
+                                };
                             } catch (e) { return null; }
                         }));
                         
@@ -233,13 +212,13 @@
 
             if (errorMsg) return (
                 <div className="h-screen bg-black flex flex-col items-center justify-center p-10 text-center">
-                    <div className="vcr-text text-2xl text-red-500 mb-6 neon-pink">CONNECTION ERROR</div>
+                    <div className="vcr-text text-2xl text-red-500 mb-6 neon-pink uppercase">Tape Error</div>
                     <div className="vcr-text text-lg opacity-80 max-w-2xl mb-8 leading-relaxed">{errorMsg}</div>
                     <div className="bg-white/5 p-8 rounded border border-white/10 text-left max-w-xl text-xs text-gray-400 space-y-4 font-sans">
-                        <p className="text-white font-bold text-sm">Action Required:</p>
-                        <p>1. Inside your Google Sheet, go to <strong>File > Share > Publish to the Web</strong> and click the blue <strong>Publish</strong> button.</p>
-                        <p>2. Verify the tab name at the bottom is exactly: <strong>"{SHEET_NAME}"</strong>.</p>
-                        <p>3. Ensure you have movie titles in the first column (Column A).</p>
+                        <p className="text-white font-bold text-sm">Possible Fixes:</p>
+                        <p>1. Check if the movie titles are in <strong>Column A</strong>.</p>
+                        <p>2. Ensure the first row isn't blank.</p>
+                        <p>3. Refresh the page to try again.</p>
                     </div>
                 </div>
             );
