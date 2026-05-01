@@ -244,8 +244,8 @@
                     <div className="relative z-10 h-full flex flex-col items-center justify-center p-12 lg:p-24">
                         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-24 max-w-7xl w-full animate-in fade-in duration-1000">
                             
-                            {/* Poster */}
-                            <div className="relative flex-shrink-0 shadow-[0_0_100px_rgba(0,0,0,1)]">
+                            {/* Poster - Added translate-y to move it up */}
+                            <div className="relative flex-shrink-0 shadow-[0_0_100px_rgba(0,0,0,1)] transform -translate-y-8 lg:-translate-y-12">
                                 <img 
                                     key={`poster-${activeMovie?.id}`}
                                     src={`https://image.tmdb.org/t/p/w780${activeMovie?.poster_path}`}
@@ -265,12 +265,12 @@
                                     <h1 className="text-6xl lg:text-8xl font-black uppercase italic tracking-tighter text-white drop-shadow-2xl">{activeMovie?.title}</h1>
                                 )}
                                 
-                                {/* Release Year and Label */}
+                                {/* Release Year and Label Info */}
                                 <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
                                     <div className="neon-blue text-4xl lg:text-6xl font-black tracking-tighter opacity-90">
                                         {activeMovie?.release_date?.split('-')[0]}
                                     </div>
-                                    <div className="bg-red-600 text-white px-4 py-1 font-black italic shadow-2xl text-sm lg:text-base uppercase tracking-wider self-center">
+                                    <div className="text-white/60 font-bold italic text-sm lg:text-xl uppercase tracking-widest self-center pl-2">
                                         {activeMovie?.label}
                                     </div>
                                 </div>
