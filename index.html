@@ -3,76 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Robert's Video Screensaver</title>
+    <title>Robert's Video Store - Digital Vault</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Archivo+Black&display=swap" rel="stylesheet">
     <style>
-        body { 
-            background-color: black; 
-            margin: 0; 
-            overflow: hidden; 
-            font-family: 'Share Tech Mono', monospace; 
-            cursor: none;
-        }
-
-        .vcr-text {
-            color: #ebebeb;
-            text-shadow: 1px 1px #000;
-            filter: blur(0.2px);
-            letter-spacing: 2px;
-        }
-
-        .neon-pink {
-            color: #fff;
-            text-shadow: 0 0 5px #fff, 0 0 10px #ff00de, 0 0 20px #ff00de;
-        }
-        .neon-blue {
-            color: #fff;
-            text-shadow: 0 0 5px #fff, 0 0 10px #00d2ff, 0 0 20px #00d2ff;
-        }
-
-        @keyframes flicker {
-            0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; }
-            20%, 24%, 55% { opacity: 0.85; }
-        }
+        body { background-color: black; margin: 0; overflow: hidden; font-family: 'Share Tech Mono', monospace; cursor: none; }
+        .vcr-text { color: #ebebeb; text-shadow: 1px 1px #000; filter: blur(0.2px); letter-spacing: 2px; }
+        .neon-pink { color: #fff; text-shadow: 0 0 5px #fff, 0 0 10px #ff00de, 0 0 20px #ff00de; }
+        .neon-blue { color: #fff; text-shadow: 0 0 5px #fff, 0 0 10px #00d2ff, 0 0 20px #00d2ff; }
+        .neon-border-blue { border: 2px solid #00d2ff; box-shadow: 0 0 15px #00d2ff; }
+        @keyframes flicker { 0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; } 20%, 24%, 55% { opacity: 0.85; } }
         .neon-flicker { animation: flicker 4s infinite; }
-
-        @keyframes tracking {
-            0% { top: -10%; opacity: 0; }
-            10% { opacity: 0.1; }
-            90% { opacity: 0.1; }
-            100% { top: 110%; opacity: 0; }
-        }
-        .vhs-tracking {
-            position: fixed;
-            left: 0; width: 100%; height: 2px;
-            background: rgba(255,255,255,0.15);
-            box-shadow: 0 0 8px rgba(255,255,255,0.3);
-            z-index: 150;
-            animation: tracking 12s infinite linear;
-        }
-
-        .scanlines {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
-            background-size: 100% 4px;
-            z-index: 100;
-            pointer-events: none;
-        }
-
-        @keyframes pulse-bg {
-            0%, 100% { transform: scale(1.05) translate(-50%, -50%); opacity: 0.3; }
-            50% { transform: scale(1.1) translate(-50%, -50%); opacity: 0.5; }
-        }
-        .bg-pulse {
-            position: absolute; top: 50%; left: 50%;
-            min-width: 110%; min-height: 110%;
-            animation: pulse-bg 25s infinite ease-in-out;
-        }
+        @keyframes tracking { 0% { top: -10%; opacity: 0; } 10% { opacity: 0.1; } 90% { opacity: 0.1; } 100% { top: 110%; opacity: 0; } }
+        .vhs-tracking { position: fixed; left: 0; width: 100%; height: 2px; background: rgba(255,255,255,0.15); box-shadow: 0 0 8px rgba(255,255,255,0.3); z-index: 150; animation: tracking 12s infinite linear; }
+        .scanlines { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%); background-size: 100% 4px; z-index: 100; pointer-events: none; }
+        @keyframes pulse-bg { 0%, 100% { transform: scale(1.05) translate(-50%, -50%); opacity: 0.3; } 50% { transform: scale(1.1) translate(-50%, -50%); opacity: 0.5; } }
+        .bg-pulse { position: absolute; top: 50%; left: 50%; min-width: 110%; min-height: 110%; animation: pulse-bg 25s infinite ease-in-out; }
+        .detail-overlay { background: radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.95) 100%); }
     </style>
 </head>
 <body>
@@ -83,24 +33,14 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // --- CONFIGURATION ---
         const TMDB_API_KEY = "6ae71efb7a4441efb04f3b77764589c3"; 
         const PUBLISHED_ID = "2PACX-1vTpYGbkD2AliFONt-zZz2wXOHXR1z6nHRdnF00KW-e66JwK18f_NIXtYp0cGC1s1JzeIG3UznGt6b0w";
-        
-        // --- ROTATION SPEED UPDATED TO 20 SECONDS ---
         const ROTATION_SPEED = 20000; 
 
-        const RetroLogo = () => (
-            <div className="fixed top-8 right-12 z-[110] flex flex-col items-center neon-flicker scale-75 lg:scale-100 origin-top-right">
+        const RetroLogo = ({ hidden }) => (
+            <div className={`fixed top-8 right-12 z-[110] flex flex-col items-center neon-flicker scale-75 lg:scale-100 origin-top-right transition-opacity duration-500 ${hidden ? 'opacity-0' : 'opacity-100'}`}>
                 <svg width="220" height="100" viewBox="0 0 220 100">
-                    <defs>
-                        <filter id="glow">
-                            <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
-                            <feMerge>
-                                <feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
-                    </defs>
+                    <defs><filter id="glow"><feGaussianBlur stdDeviation="1.5" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
                     <path d="M10 10 L210 10 L210 90 L10 90 Z" fill="none" stroke="#ff00de" strokeWidth="2" filter="url(#glow)" style={{opacity: 0.7}} />
                     <text x="50%" y="42" textAnchor="middle" fill="#fff" style={{fontFamily: 'Archivo Black', fontSize: '18px'}} filter="url(#glow)" className="neon-pink">ROBERT'S</text>
                     <text x="50%" y="72" textAnchor="middle" fill="#fff" style={{fontFamily: 'Archivo Black', fontSize: '24px'}} filter="url(#glow)" className="neon-blue">VIDEO STORE</text>
@@ -109,15 +49,14 @@
             </div>
         );
 
-        const RetroClock = () => {
+        const RetroClock = ({ hidden }) => {
             const [time, setTime] = useState(new Date());
             useEffect(() => {
                 const timer = setInterval(() => setTime(new Date()), 1000);
                 return () => clearInterval(timer);
             }, []);
-
             return (
-                <div className="fixed bottom-8 left-12 z-[110] space-y-1 opacity-90 neon-flicker">
+                <div className={`fixed bottom-8 left-12 z-[110] space-y-1 opacity-90 neon-flicker transition-opacity duration-500 ${hidden ? 'opacity-0' : 'opacity-100'}`}>
                     <div className="flex items-center gap-4 neon-blue text-2xl lg:text-4xl font-bold">
                         <span className="text-sm border border-white/40 px-2 py-0.5 tracking-tighter opacity-70">VCR1</span>
                         <span>{time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }).toUpperCase()}</span>
@@ -135,6 +74,8 @@
             const [loading, setLoading] = useState(true);
             const [activeMovie, setActiveMovie] = useState(null);
             const [errorMsg, setErrorMsg] = useState(null);
+            const [viewMode, setViewMode] = useState('screensaver'); // 'screensaver' or 'detail'
+            const [extraData, setExtraData] = useState(null);
 
             const parseCSV = (csvText) => {
                 const lines = csvText.split('\n');
@@ -158,20 +99,26 @@
                 return array;
             };
 
+            const fetchExtraInfo = async (movieId) => {
+                try {
+                    const res = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${TMDB_API_KEY}&append_to_response=videos,credits`);
+                    const data = await res.json();
+                    const trailer = data.videos?.results?.find(v => v.type === 'Trailer' && v.site === 'YouTube');
+                    const director = data.credits?.crew?.find(c => c.job === 'Director')?.name;
+                    const cast = data.credits?.cast?.slice(0, 3).map(c => c.name).join(', ');
+                    setExtraData({ trailerId: trailer?.key, director, cast, genres: data.genres?.map(g => g.name).join(', ') });
+                } catch (e) { console.error("Extra data fetch failed", e); }
+            };
+
             useEffect(() => {
                 const init = async () => {
                     try {
                         const csvUrl = `https://docs.google.com/spreadsheets/d/e/${PUBLISHED_ID}/pub?output=csv`;
                         const response = await fetch(csvUrl);
                         if (!response.ok) throw new Error(`Tape Access Denied (Status ${response.status})`);
-                        
                         const csvText = await response.text();
                         const allRows = parseCSV(csvText);
-
-                        if (allRows.length === 0) throw new Error("No movie titles found.");
-
                         const randomSelection = shuffleArray([...allRows]).slice(0, 150);
-
                         const enriched = await Promise.all(randomSelection.map(async (m) => {
                             try {
                                 const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(m.title)}`);
@@ -182,109 +129,117 @@
                                 return { ...m, ...movie, logo: details.images?.logos?.find(l => l.iso_639_1 === 'en' || !l.iso_639_1)?.file_path };
                             } catch (e) { return null; }
                         }));
-                        
                         const filtered = enriched.filter(m => m !== null);
-                        if (filtered.length === 0) throw new Error("No matches found in Vault.");
-                        
                         setMovies(filtered);
                         setActiveMovie(filtered[0]);
                         setLoading(false);
-                    } catch (e) { 
-                        setErrorMsg(e.message);
-                        setLoading(false);
-                    }
+                    } catch (e) { setErrorMsg(e.message); setLoading(false); }
                 };
                 init();
             }, []);
 
             useEffect(() => {
-                if (movies.length === 0) return;
+                if (movies.length === 0 || viewMode === 'detail') return;
                 const interval = setInterval(() => setIndex(prev => (prev + 1) % movies.length), ROTATION_SPEED);
                 return () => clearInterval(interval);
-            }, [movies]);
+            }, [movies, viewMode]);
 
             useEffect(() => {
                 const handleKey = (e) => {
-                    if (e.keyCode === 39) setIndex(prev => (prev + 1) % movies.length);
-                    if (e.keyCode === 37) setIndex(prev => (prev - 1 + movies.length) % movies.length);
+                    if (movies.length === 0) return;
+                    if (viewMode === 'screensaver') {
+                        if (e.keyCode === 39) setIndex(prev => (prev + 1) % movies.length);
+                        if (e.keyCode === 37) setIndex(prev => (prev - 1 + movies.length) % movies.length);
+                        if (e.keyCode === 13) { // SELECT / ENTER
+                            setViewMode('detail');
+                            fetchExtraInfo(activeMovie.id);
+                        }
+                    } else {
+                        if (e.keyCode === 27 || e.keyCode === 8) { // BACK / ESCAPE
+                            setViewMode('screensaver');
+                            setExtraData(null);
+                        }
+                    }
                 };
                 window.addEventListener('keydown', handleKey);
                 return () => window.removeEventListener('keydown', handleKey);
-            }, [movies]);
+            }, [movies, viewMode, activeMovie]);
 
             useEffect(() => { if (movies[index]) setActiveMovie(movies[index]); }, [index, movies]);
 
-            if (errorMsg) return (
-                <div className="h-screen bg-black flex flex-col items-center justify-center p-10 text-center">
-                    <div className="neon-pink text-3xl mb-6 uppercase tracking-widest font-bold">Tape Error</div>
-                    <div className="vcr-text text-lg opacity-80 max-w-2xl">{errorMsg}</div>
-                </div>
-            );
-
-            if (loading) return (
-                <div className="h-screen bg-black flex flex-col items-center justify-center text-3xl">
-                    <div className="neon-blue animate-pulse tracking-[0.3em] uppercase font-bold">Loading Vault...</div>
-                </div>
-            );
+            if (errorMsg) return <div className="h-screen bg-black flex flex-col items-center justify-center p-10 text-center"><div className="neon-pink text-3xl mb-6 uppercase tracking-widest font-bold">Tape Error</div><div className="vcr-text text-lg opacity-80 max-w-2xl">{errorMsg}</div></div>;
+            if (loading) return <div className="h-screen bg-black flex flex-col items-center justify-center text-3xl"><div className="neon-blue animate-pulse tracking-[0.3em] uppercase font-bold">Loading Vault...</div></div>;
 
             const tmdbYear = activeMovie?.release_date?.split('-')[0];
             const shouldShowCollection = activeMovie?.collectionInfo && activeMovie.collectionInfo !== tmdbYear;
 
             return (
                 <div className="h-screen w-screen bg-black overflow-hidden relative">
-                    <RetroLogo />
-                    <RetroClock />
+                    <RetroLogo hidden={viewMode === 'detail'} />
+                    <RetroClock hidden={viewMode === 'detail'} />
                     
                     <div className="absolute inset-0">
-                        <img 
-                            key={`bg-${activeMovie?.id}`}
-                            src={`https://image.tmdb.org/t/p/original${activeMovie?.backdrop_path}`}
-                            className="bg-pulse object-cover blur-2xl"
-                        />
-                        <div className="absolute inset-0 bg-black/60" />
+                        <img key={`bg-${activeMovie?.id}`} src={`https://image.tmdb.org/t/p/original${activeMovie?.backdrop_path}`} className="bg-pulse object-cover blur-2xl" />
+                        <div className={`absolute inset-0 transition-colors duration-1000 ${viewMode === 'detail' ? 'detail-overlay' : 'bg-black/60'}`} />
                     </div>
 
                     <div className="relative z-10 h-full flex flex-col items-center justify-center p-12 lg:p-24">
-                        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-24 max-w-7xl w-full animate-in fade-in duration-1000">
-                            
+                        <div className={`flex flex-col lg:flex-row items-center gap-12 lg:gap-24 max-w-7xl w-full transition-all duration-700 ${viewMode === 'detail' ? 'scale-90 opacity-40 blur-sm translate-y-[-20%]' : 'animate-in fade-in'}`}>
                             <div className="relative flex-shrink-0 shadow-[0_0_100px_rgba(0,0,0,1)] transform -translate-y-8 lg:-translate-y-12">
-                                <img 
-                                    key={`poster-${activeMovie?.id}`}
-                                    src={`https://image.tmdb.org/t/p/w780${activeMovie?.poster_path}`}
-                                    className="h-[60vh] lg:h-[75vh] w-auto border-[4px] border-white/5 rounded-sm"
-                                />
+                                <img key={`poster-${activeMovie?.id}`} src={`https://image.tmdb.org/t/p/w780${activeMovie?.poster_path}`} className="h-[60vh] lg:h-[75vh] w-auto border-[4px] border-white/5 rounded-sm" />
                             </div>
-
                             <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-4 lg:space-y-6 flex-1">
-                                {activeMovie?.logo ? (
-                                    <img 
-                                        key={`logo-${activeMovie?.id}`}
-                                        src={`https://image.tmdb.org/t/p/w500${activeMovie.logo}`} 
-                                        className="h-24 lg:h-44 object-contain brightness-125 drop-shadow-[0_0_20px_rgba(0,0,0,0.8)]"
-                                    />
-                                ) : (
-                                    <h1 className="text-5xl lg:text-7xl font-black uppercase italic tracking-tighter text-white drop-shadow-2xl leading-[0.95]">{activeMovie?.title}</h1>
-                                )}
-                                
+                                {activeMovie?.logo ? <img src={`https://image.tmdb.org/t/p/w500${activeMovie.logo}`} className="h-24 lg:h-44 object-contain brightness-125 drop-shadow-[0_0_20px_rgba(0,0,0,0.8)]" /> : <h1 className="text-5xl lg:text-7xl font-black uppercase italic tracking-tighter text-white drop-shadow-2xl leading-[0.95]">{activeMovie?.title}</h1>}
                                 <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6">
-                                    <div className="neon-blue text-4xl lg:text-6xl font-black tracking-tighter opacity-90">
-                                        {tmdbYear}
-                                    </div>
-                                    
-                                    {shouldShowCollection && (
-                                        <div className="text-white/60 font-bold italic text-xs lg:text-lg uppercase tracking-[0.2em] self-center pl-4 border-l border-white/20">
-                                            {activeMovie.collectionInfo}
-                                        </div>
-                                    )}
+                                    <div className="neon-blue text-4xl lg:text-6xl font-black tracking-tighter opacity-90">{tmdbYear}</div>
+                                    {shouldShowCollection && <div className="text-white/60 font-bold italic text-sm lg:text-lg uppercase tracking-[0.2em] self-center pl-4 border-l border-white/20">{activeMovie.collectionInfo}</div>}
                                 </div>
-
-                                <p className="text-lg lg:text-xl text-white/80 leading-snug italic font-medium max-w-2xl drop-shadow-lg line-clamp-5 lg:line-clamp-6">
-                                    "{activeMovie?.overview}"
-                                </p>
+                                <p className="text-lg lg:text-xl text-white/80 leading-snug italic font-medium max-w-2xl drop-shadow-lg line-clamp-5 lg:line-clamp-6">"{activeMovie?.overview}"</p>
+                                <div className="pt-4 text-white/30 text-xs tracking-widest uppercase animate-pulse">Press [SELECT] for Trailer & Details</div>
                             </div>
                         </div>
-                    </div>
 
+                        {/* Interactive Detail Overlay */}
+                        {viewMode === 'detail' && (
+                            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-10 lg:p-20 animate-in fade-in zoom-in duration-500">
+                                <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-12 items-center bg-black/40 backdrop-blur-3xl p-10 lg:p-16 rounded-3xl border border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.8)]">
+                                    <div className="space-y-8">
+                                        <div className="space-y-2">
+                                            <div className="neon-blue text-5xl lg:text-6xl font-black italic tracking-tighter">{activeMovie.title}</div>
+                                            <div className="flex gap-4 text-white/50 text-sm font-bold tracking-[0.3em] uppercase items-center">
+                                                <span>{tmdbYear}</span>
+                                                <span className="w-1.5 h-1.5 bg-white/20 rounded-full" />
+                                                <span className="neon-pink">{extraData?.genres || "Action"}</span>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-8 vcr-text text-xs lg:text-sm">
+                                            <div className="space-y-2">
+                                                <div className="text-white/30 uppercase tracking-widest">Director</div>
+                                                <div className="text-white/80">{extraData?.director || "Loading..."}</div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <div className="text-white/30 uppercase tracking-widest">Format</div>
+                                                <div className="text-white/80">{activeMovie.collectionInfo || "Standard Vault"}</div>
+                                            </div>
+                                            <div className="col-span-2 space-y-2">
+                                                <div className="text-white/30 uppercase tracking-widest">Starring</div>
+                                                <div className="text-white/80">{extraData?.cast || "Loading..."}</div>
+                                            </div>
+                                        </div>
+                                        <div className="text-lg text-white/70 italic leading-relaxed font-medium">"{activeMovie.overview}"</div>
+                                        <div className="pt-4 text-white/20 text-[10px] tracking-[0.5em] uppercase">Press [BACK] to Return to Store</div>
+                                    </div>
+                                    <div className="aspect-video w-full bg-black rounded-xl overflow-hidden neon-border-blue relative shadow-2xl">
+                                        {extraData?.trailerId ? (
+                                            <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${extraData.trailerId}?autoplay=1&mute=0&controls=0&modestbranding=1&rel=0`} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
+                                        ) : (
+                                            <div className="absolute inset-0 flex items-center justify-center vcr-text opacity-40 uppercase tracking-widest">Loading Trailer...</div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                     <FilmGrain />
                 </div>
             );
@@ -293,22 +248,15 @@
         const FilmGrain = () => {
             const canvasRef = useRef(null);
             useEffect(() => {
-                const canvas = canvasRef.current;
-                const ctx = canvas.getContext('2d');
+                const canvas = canvasRef.current; const ctx = canvas.getContext('2d');
                 const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
                 const render = () => {
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    const imageData = ctx.createImageData(canvas.width, canvas.height);
-                    const data = imageData.data;
-                    for (let i = 0; i < data.length; i += 4) {
-                        const noise = Math.random() * 255;
-                        data[i] = noise; data[i+1] = noise; data[i+2] = noise; data[i+3] = 15;
-                    }
-                    ctx.putImageData(imageData, 0, 0);
-                    requestAnimationFrame(render);
+                    const imageData = ctx.createImageData(canvas.width, canvas.height); const data = imageData.data;
+                    for (let i = 0; i < data.length; i += 4) { const noise = Math.random() * 255; data[i] = noise; data[i+1] = noise; data[i+2] = noise; data[i+3] = 15; }
+                    ctx.putImageData(imageData, 0, 0); requestAnimationFrame(render);
                 };
-                window.addEventListener('resize', resize);
-                resize(); render();
+                window.addEventListener('resize', resize); resize(); render();
             }, []);
             return <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 120, opacity: 0.3 }} />;
         };
