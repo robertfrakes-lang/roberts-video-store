@@ -86,7 +86,8 @@
         // --- USER CONFIG ---
         const TMDB_API_KEY = "6ae71efb7a4441efb04f3b77764589c3"; 
         const GOOGLE_SHEET_ID = "1qpyC0XzvTcKT6EISywvqESX3A0MwQoFDE8p-Bll4hps"; 
-        // TIP: Double-check that this name matches the TAB name at the bottom of your sheet exactly.
+        
+        // UPDATED: Now matches your actual tab name
         const SHEET_NAME = "Roberts video store application database"; 
         const ROTATION_SPEED = 15000; 
 
@@ -141,16 +142,15 @@
                     try {
                         const cleanId = GOOGLE_SHEET_ID.includes('/d/') ? GOOGLE_SHEET_ID.split('/d/')[1].split('/')[0] : GOOGLE_SHEET_ID;
                         
-                        // 1. Fetch from Sheets
                         const sheetUrl = `https://docs.google.com/spreadsheets/d/${cleanId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
+
                         const response = await fetch(sheetUrl);
-                        if (!response.ok) throw new Error("Could not connect to Google Sheet.");
+                        if (!response.ok) throw new Error(`Google rejected the request (Status ${response.status}). Check 'Share' settings.`);
                         
                         const text = await response.text();
-                        // Handle the Google JSON format
                         const jsonStart = text.indexOf('{');
                         const jsonEnd = text.lastIndexOf('}');
-                        if (jsonStart === -1 || jsonEnd === -1) throw new Error("Invalid response from Google Sheets. Check Tab Name.");
+                        if (jsonStart === -1 || jsonEnd === -1) throw new Error("Google returned non-data. Double-check the Tab Name at the bottom of your sheet.");
                         
                         const json = JSON.parse(text.substring(jsonStart, jsonEnd + 1));
                         const rows = json.table.rows.map(row => {
@@ -161,9 +161,8 @@
                             };
                         }).filter(r => r && r.title);
 
-                        if (rows.length === 0) throw new Error("No movie titles found in your spreadsheet (Column A).");
+                        if (rows.length === 0) throw new Error("Spreadsheet connected, but no movie titles found in Column A.");
 
-                        // 2. Fetch from TMDB
                         const enriched = await Promise.all(rows.slice(0, 50).map(async (m) => {
                             try {
                                 const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(m.title)}`);
@@ -177,19 +176,16 @@
                                     ...movie, 
                                     logo: details.images?.logos?.find(l => l.iso_639_1 === 'en' || !l.iso_639_1)?.file_path 
                                 };
-                            } catch (e) {
-                                return null;
-                            }
+                            } catch (e) { return null; }
                         }));
                         
                         const filtered = enriched.filter(m => m !== null);
-                        if (filtered.length === 0) throw new Error("No movie matches found on TMDB. Check your titles.");
+                        if (filtered.length === 0) throw new Error("Connected to Sheet, but TMDB couldn't find matches for your titles.");
                         
                         setMovies(filtered);
                         setActiveMovie(filtered[0]);
                         setLoading(false);
                     } catch (e) { 
-                        console.error(e);
                         setErrorMsg(e.message);
                         setLoading(false);
                     }
@@ -216,18 +212,19 @@
 
             if (errorMsg) return (
                 <div className="h-screen bg-black flex flex-col items-center justify-center p-10 text-center">
-                    <div className="vcr-text text-2xl text-red-500 mb-6 jitter-fx">SYSTEM ERROR</div>
-                    <div className="vcr-text text-lg opacity-80 max-w-xl">{errorMsg}</div>
-                    <div className="mt-10 text-xs text-white/20 uppercase tracking-widest">
-                        Check Sheet ID: {GOOGLE_SHEET_ID.substring(0, 8)}...<br/>
-                        Check Tab Name: "{SHEET_NAME}"
+                    <div className="vcr-text text-2xl text-red-500 mb-6 neon-pink">CONNECTION ERROR</div>
+                    <div className="vcr-text text-lg opacity-80 max-w-2xl mb-8">{errorMsg}</div>
+                    <div className="bg-white/5 p-6 rounded border border-white/10 text-left max-w-xl text-xs text-gray-400 space-y-2">
+                        <p>1. Is your Sheet shared as <strong>"Anyone with the link can view"</strong>?</p>
+                        <p>2. Does the tab name at the bottom match <strong>"{SHEET_NAME}"</strong> exactly?</p>
+                        <p>3. Are movie titles in the first column (Column A)?</p>
                     </div>
                 </div>
             );
 
             if (loading) return (
                 <div className="h-screen bg-black flex flex-col items-center justify-center vcr-text text-3xl">
-                    <div className="animate-pulse tracking-widest">TRACKING TAPE...</div>
+                    <div className="animate-pulse tracking-widest text-white">TRACKING TAPE...</div>
                 </div>
             );
 
