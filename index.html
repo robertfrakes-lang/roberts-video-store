@@ -86,7 +86,9 @@
         // --- CONFIGURATION ---
         const TMDB_API_KEY = "6ae71efb7a4441efb04f3b77764589c3"; 
         const PUBLISHED_ID = "2PACX-1vTpYGbkD2AliFONt-zZz2wXOHXR1z6nHRdnF00KW-e66JwK18f_NIXtYp0cGC1s1JzeIG3UznGt6b0w";
-        const ROTATION_SPEED = 15000; 
+        
+        // --- ROTATION SPEED UPDATED TO 20 SECONDS ---
+        const ROTATION_SPEED = 20000; 
 
         const RetroLogo = () => (
             <div className="fixed top-8 right-12 z-[110] flex flex-col items-center neon-flicker scale-75 lg:scale-100 origin-top-right">
@@ -139,11 +141,6 @@
                 return lines.map(line => {
                     const parts = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                     if (!parts[0]) return null;
-                    
-                    // Logic update: 
-                    // Column A (0) = Title
-                    // Column C (2) = Collection/Format Info
-                    // (We skip Column B because it likely contains the Year)
                     return {
                         title: parts[0].replace(/"/g, '').trim(),
                         collectionInfo: parts[2]?.replace(/"/g, '').trim() || null
@@ -230,9 +227,7 @@
                 </div>
             );
 
-            // Extract just the Year for comparison
             const tmdbYear = activeMovie?.release_date?.split('-')[0];
-            // Only show collection info if it exists AND is not just a duplicate of the year
             const shouldShowCollection = activeMovie?.collectionInfo && activeMovie.collectionInfo !== tmdbYear;
 
             return (
@@ -260,15 +255,15 @@
                                 />
                             </div>
 
-                            <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6 lg:space-y-10 flex-1">
+                            <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-4 lg:space-y-6 flex-1">
                                 {activeMovie?.logo ? (
                                     <img 
                                         key={`logo-${activeMovie?.id}`}
                                         src={`https://image.tmdb.org/t/p/w500${activeMovie.logo}`} 
-                                        className="h-28 lg:h-52 object-contain brightness-125 drop-shadow-[0_0_20px_rgba(0,0,0,0.8)]"
+                                        className="h-24 lg:h-44 object-contain brightness-125 drop-shadow-[0_0_20px_rgba(0,0,0,0.8)]"
                                     />
                                 ) : (
-                                    <h1 className="text-6xl lg:text-8xl font-black uppercase italic tracking-tighter text-white drop-shadow-2xl leading-tight">{activeMovie?.title}</h1>
+                                    <h1 className="text-5xl lg:text-7xl font-black uppercase italic tracking-tighter text-white drop-shadow-2xl leading-[0.95]">{activeMovie?.title}</h1>
                                 )}
                                 
                                 <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6">
@@ -277,13 +272,13 @@
                                     </div>
                                     
                                     {shouldShowCollection && (
-                                        <div className="text-white/60 font-bold italic text-sm lg:text-xl uppercase tracking-[0.2em] self-center pl-4 border-l border-white/20">
+                                        <div className="text-white/60 font-bold italic text-xs lg:text-lg uppercase tracking-[0.2em] self-center pl-4 border-l border-white/20">
                                             {activeMovie.collectionInfo}
                                         </div>
                                     )}
                                 </div>
 
-                                <p className="text-xl lg:text-2xl text-white/80 leading-snug italic font-medium max-w-2xl drop-shadow-lg line-clamp-4 lg:line-clamp-none">
+                                <p className="text-lg lg:text-xl text-white/80 leading-snug italic font-medium max-w-2xl drop-shadow-lg line-clamp-5 lg:line-clamp-6">
                                     "{activeMovie?.overview}"
                                 </p>
                             </div>
