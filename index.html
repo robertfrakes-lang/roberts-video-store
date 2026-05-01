@@ -139,10 +139,14 @@
                 return lines.map(line => {
                     const parts = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                     if (!parts[0]) return null;
+                    
+                    // Logic update: 
+                    // Column A (0) = Title
+                    // Column C (2) = Collection/Format Info
+                    // (We skip Column B because it likely contains the Year)
                     return {
                         title: parts[0].replace(/"/g, '').trim(),
-                        // Pull collection/box set info from "Format" column (Column B)
-                        collectionInfo: parts[1]?.replace(/"/g, '').trim() || null
+                        collectionInfo: parts[2]?.replace(/"/g, '').trim() || null
                     };
                 }).filter(m => m && m.title && !m.title.toLowerCase().includes("title"));
             };
@@ -169,7 +173,6 @@
 
                         if (allRows.length === 0) throw new Error("No movie titles found.");
 
-                        // Shuffle full library first
                         const randomSelection = shuffleArray([...allRows]).slice(0, 150);
 
                         const enriched = await Promise.all(randomSelection.map(async (m) => {
@@ -227,6 +230,11 @@
                 </div>
             );
 
+            // Extract just the Year for comparison
+            const tmdbYear = activeMovie?.release_date?.split('-')[0];
+            // Only show collection info if it exists AND is not just a duplicate of the year
+            const shouldShowCollection = activeMovie?.collectionInfo && activeMovie.collectionInfo !== tmdbYear;
+
             return (
                 <div className="h-screen w-screen bg-black overflow-hidden relative">
                     <RetroLogo />
@@ -244,7 +252,6 @@
                     <div className="relative z-10 h-full flex flex-col items-center justify-center p-12 lg:p-24">
                         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-24 max-w-7xl w-full animate-in fade-in duration-1000">
                             
-                            {/* Poster shifted up */}
                             <div className="relative flex-shrink-0 shadow-[0_0_100px_rgba(0,0,0,1)] transform -translate-y-8 lg:-translate-y-12">
                                 <img 
                                     key={`poster-${activeMovie?.id}`}
@@ -266,10 +273,10 @@
                                 
                                 <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6">
                                     <div className="neon-blue text-4xl lg:text-6xl font-black tracking-tighter opacity-90">
-                                        {activeMovie?.release_date?.split('-')[0]}
+                                        {tmdbYear}
                                     </div>
-                                    {/* Collection Info Logic from Format Column */}
-                                    {activeMovie?.collectionInfo && (
+                                    
+                                    {shouldShowCollection && (
                                         <div className="text-white/60 font-bold italic text-sm lg:text-xl uppercase tracking-[0.2em] self-center pl-4 border-l border-white/20">
                                             {activeMovie.collectionInfo}
                                         </div>
