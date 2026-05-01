@@ -25,7 +25,6 @@
             letter-spacing: 2px;
         }
 
-        /* Toned down Neon Sign Effects */
         .neon-pink {
             color: #fff;
             text-shadow: 0 0 5px #fff, 0 0 10px #ff00de, 0 0 20px #ff00de;
@@ -41,7 +40,6 @@
         }
         .neon-flicker { animation: flicker 4s infinite; }
 
-        /* VHS Tracking Line */
         @keyframes tracking {
             0% { top: -10%; opacity: 0; }
             10% { opacity: 0.1; }
@@ -57,7 +55,6 @@
             animation: tracking 12s infinite linear;
         }
 
-        /* Scanlines */
         .scanlines {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -150,7 +147,7 @@
             };
 
             const shuffleArray = (array) => {
-                let currentIndex = array.length,  randomIndex;
+                let currentIndex = array.length, randomIndex;
                 while (currentIndex != 0) {
                     randomIndex = Math.floor(Math.random() * currentIndex);
                     currentIndex--;
@@ -167,9 +164,14 @@
                         if (!response.ok) throw new Error(`Tape Access Denied (Status ${response.status})`);
                         
                         const csvText = await response.text();
-                        const movieRows = parseCSV(csvText);
+                        const allRows = parseCSV(csvText);
 
-                        const enriched = await Promise.all(movieRows.slice(0, 100).map(async (m) => {
+                        if (allRows.length === 0) throw new Error("No movie titles found.");
+
+                        // NEW LOGIC: Shuffle ALL 1500+ movies FIRST
+                        const randomSelection = shuffleArray([...allRows]).slice(0, 150);
+
+                        const enriched = await Promise.all(randomSelection.map(async (m) => {
                             try {
                                 const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(m.title)}`);
                                 const data = await res.json();
@@ -183,9 +185,8 @@
                         const filtered = enriched.filter(m => m !== null);
                         if (filtered.length === 0) throw new Error("No matches found in Vault.");
                         
-                        const shuffledMovies = shuffleArray([...filtered]);
-                        setMovies(shuffledMovies);
-                        setActiveMovie(shuffledMovies[0]);
+                        setMovies(filtered);
+                        setActiveMovie(filtered[0]);
                         setLoading(false);
                     } catch (e) { 
                         setErrorMsg(e.message);
@@ -230,7 +231,6 @@
                     <RetroLogo />
                     <RetroClock />
                     
-                    {/* Background */}
                     <div className="absolute inset-0">
                         <img 
                             key={`bg-${activeMovie?.id}`}
@@ -240,11 +240,9 @@
                         <div className="absolute inset-0 bg-black/60" />
                     </div>
 
-                    {/* Content */}
                     <div className="relative z-10 h-full flex flex-col items-center justify-center p-12 lg:p-24">
                         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-24 max-w-7xl w-full animate-in fade-in duration-1000">
                             
-                            {/* Poster - Added translate-y to move it up */}
                             <div className="relative flex-shrink-0 shadow-[0_0_100px_rgba(0,0,0,1)] transform -translate-y-8 lg:-translate-y-12">
                                 <img 
                                     key={`poster-${activeMovie?.id}`}
@@ -253,7 +251,6 @@
                                 />
                             </div>
 
-                            {/* Info Side */}
                             <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6 lg:space-y-10 flex-1">
                                 {activeMovie?.logo ? (
                                     <img 
@@ -265,7 +262,6 @@
                                     <h1 className="text-6xl lg:text-8xl font-black uppercase italic tracking-tighter text-white drop-shadow-2xl">{activeMovie?.title}</h1>
                                 )}
                                 
-                                {/* Release Year - Only the Neon one */}
                                 <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
                                     <div className="neon-blue text-4xl lg:text-6xl font-black tracking-tighter opacity-90">
                                         {activeMovie?.release_date?.split('-')[0]}
