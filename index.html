@@ -15,11 +15,10 @@
         .neon-pink { color: #fff; text-shadow: 0 0 5px #fff, 0 0 10px #ff00de, 0 0 20px #ff00de; }
         .neon-blue { color: #fff; text-shadow: 0 0 5px #fff, 0 0 10px #00d2ff, 0 0 20px #00d2ff; }
         
+        /* Flattened Video Container to save GPU cycles */
         .video-container { 
             border: 2px solid #00d2ff; 
-            box-shadow: 0 0 20px #00d2ff; 
             background: #000;
-            isolation: isolate; 
             transform: translateZ(0);
         }
 
@@ -85,6 +84,7 @@
             const [errorMsg, setErrorMsg] = useState(null);
             const [viewMode, setViewMode] = useState('screensaver'); 
             const [extraData, setExtraData] = useState(null);
+            const [readyToPlay, setReadyToPlay] = useState(false);
 
             const parseCSV = (csvText) => {
                 const lines = csvText.split('\n');
@@ -116,6 +116,9 @@
                     const director = data.credits?.crew?.find(c => c.job === 'Director')?.name;
                     const cast = data.credits?.cast?.slice(0, 3).map(c => c.name).join(', ');
                     setExtraData({ trailerId: trailer?.key, director, cast, genres: data.genres?.map(g => g.name).join(', ') });
+                    
+                    // Delay video load to let hardware stabilize
+                    setTimeout(() => setReadyToPlay(true), 600);
                 } catch (e) { console.error("Extra data fetch failed", e); }
             };
 
@@ -125,6 +128,7 @@
                     if (viewMode === 'detail') {
                         setViewMode('screensaver');
                         setExtraData(null);
+                        setReadyToPlay(false);
                     }
                 };
                 window.addEventListener('popstate', handlePopState);
@@ -179,7 +183,6 @@
                     } else {
                         if (e.keyCode === 8 || e.keyCode === 27 || e.keyCode === 179) { 
                             e.preventDefault(); 
-                            e.stopPropagation();
                             window.history.back();
                         }
                     }
@@ -200,7 +203,6 @@
                 <div className="h-screen w-screen bg-black overflow-hidden relative font-sans">
                     
                     {viewMode === 'screensaver' ? (
-                        /* SCREENSAVER MODE: Fully mounted and animating */
                         <div className="absolute inset-0 animate-in fade-in duration-1000">
                             <div className="vhs-tracking"></div>
                             <RetroLogo />
@@ -224,19 +226,18 @@
                                             {shouldShowCollection && <div className="text-white/60 font-bold italic text-sm lg:text-lg uppercase tracking-[0.2em] self-center pl-4 border-l border-white/20">{activeMovie.collectionInfo}</div>}
                                         </div>
                                         <p className="text-lg lg:text-xl text-white/80 leading-snug italic font-medium max-w-2xl drop-shadow-lg line-clamp-5 lg:line-clamp-6">"{activeMovie?.overview}"</p>
-                                        <div className="pt-4 text-white/30 text-xs tracking-widest uppercase animate-pulse">Press [SELECT] for Trailer & Details</div>
+                                        <div className="pt-4 text-white/30 text-xs tracking-widest uppercase animate-pulse font-bold">Press [SELECT] for Trailer & Details</div>
                                     </div>
                                 </div>
                             </div>
                             <FilmGrain />
                         </div>
                     ) : (
-                        /* DETAIL MODE: Everything above is unmounted. 100% resources for video */
-                        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-6 lg:p-12 animate-in fade-in duration-500 bg-black">
-                            <div className="w-full max-w-[95vw] grid grid-cols-1 lg:grid-cols-[1fr_1.8fr] gap-8 lg:gap-16 items-center p-8 lg:p-12 rounded-3xl border border-white/10">
+                        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-6 lg:p-12 animate-in fade-in duration-300 bg-black">
+                            <div className="w-full max-w-[95vw] grid grid-cols-1 lg:grid-cols-[1fr_1.8fr] gap-8 lg:gap-16 items-center p-8 lg:p-12 border border-white/10 bg-black">
                                 <div className="space-y-6 lg:space-y-10">
                                     <div className="space-y-4">
-                                        <div className="neon-blue text-4xl lg:text-6xl font-black italic tracking-tighter leading-tight">{activeMovie.title}</div>
+                                        <div className="neon-blue text-4xl lg:text-5xl font-black italic tracking-tighter leading-tight">{activeMovie.title}</div>
                                         <div className="flex flex-wrap gap-4 text-white/50 text-xs lg:text-sm font-bold tracking-[0.3em] uppercase items-center">
                                             <span>{tmdbYear}</span>
                                             <span className="w-1.5 h-1.5 bg-white/20 rounded-full" />
@@ -261,20 +262,20 @@
                                     <div className="pt-4 text-white/20 text-[10px] tracking-[0.5em] uppercase font-bold">Press [BACK] or [PLAY/PAUSE] to Return</div>
                                 </div>
                                 
-                                <div className="aspect-video w-full video-container rounded-xl overflow-hidden relative shadow-2xl scale-105 lg:scale-100">
-                                    {extraData?.trailerId ? (
+                                <div className="aspect-video w-full video-container overflow-hidden relative shadow-2xl">
+                                    {(extraData?.trailerId && readyToPlay) ? (
                                         <iframe 
                                             key={extraData.trailerId}
                                             width="100%" 
                                             height="100%" 
-                                            src={`https://www.youtube.com/embed/${extraData.trailerId}?autoplay=1&mute=0&controls=0&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&vq=medium&origin=${window.location.origin}`} 
+                                            src={`https://www.youtube.com/embed/${extraData.trailerId}?autoplay=1&mute=0&controls=0&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&vq=small&playsinline=1&enablejsapi=1&origin=${window.location.origin}`} 
                                             frameBorder="0" 
                                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                                             allowFullScreen
                                             style={{backgroundColor: 'black'}}
                                         ></iframe>
                                     ) : (
-                                        <div className="absolute inset-0 flex items-center justify-center vcr-text opacity-40 uppercase tracking-widest">Loading Trailer...</div>
+                                        <div className="absolute inset-0 flex items-center justify-center vcr-text opacity-40 uppercase tracking-widest">Warming Up Tube...</div>
                                     )}
                                 </div>
                             </div>
