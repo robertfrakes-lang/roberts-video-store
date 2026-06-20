@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cinema OS - TV App</title>
+    <!-- Pinned Stable Libraries -->
+    <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Archivo+Black&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: black; margin: 0; overflow: hidden; cursor: none; color: white; font-family: sans-serif; }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 1s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+        @keyframes crossFade { from { opacity: 0.2; } to { opacity: 0.4; } }
+        .bg-crossfade { animation: crossFade 2s ease-in-out forwards; }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div style="height: 100vh; background-color: black; display: flex; align-items: center; justify-content: center;">
+            <h1 style="color: #dc2626; font-size: 2rem; font-family: 'Share Tech Mono', monospace; letter-spacing: 0.2em; animation: pulse 2s infinite;">
+                BOOTING CINEMA OS...
+            </h1>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('error', function(e) {
+            if (e.message && e.message.includes('import call expects')) return; // Ignore Vercel injections
+            var rootDiv = document.getElementById('root');
+            if (rootDiv && rootDiv.innerHTML.includes('BOOTING CINEMA OS')) {
+                rootDiv.innerHTML = '<div style="padding:40px; color:#ff00de; font-family:\'Share Tech Mono\', monospace; text-align:center; margin-top:20vh;"><h2>FATAL SYSTEM FAULT</h2><p style="color:white;">' + e.message + '</p></div>';
+            }
+        });
+
+        // Force Babel to use classic runtime to avoid auto-import crashes
+        Babel.registerPreset('react-classic', {
+            presets: [ [Babel.availablePresets['react'], { "runtime": "classic" }] ]
+        });
+    </script>
+
+    <script type="text/babel" data-presets="react-classic">
+        /** @jsx React.createElement */
+        /** @jsxFrag React.Fragment */
+
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // Icons
+        const PlayIcon = ({ size=24, className="" }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>;
+        const AlertCircleIcon = ({ size=24, className="" }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>;
+        const FilmIcon = ({ size=24, className="" }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>;
+        const XIcon = ({ size=24, className="" }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
+
+        const TMDB_API_KEY = "6ae71efb7a4441efb04f3b77764589c3"; 
+        const GOOGLE_SHEET_PUBLISHED_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTpYGbkD2AliFONt-zZz2wXOHXR1z6nHRdnF00KW-e66JwK18f_NIXtYp0cGC1s1JzeIG3UznGt6b0w/pubhtml"; 
+
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false, errorMsg: "" };
+            }
+            static getDerivedStateFromError(error) {
+                return { hasError: true, errorMsg: error.message };
+            }
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div className="h-screen bg-black flex flex-col items-center justify-center p-10 text-center" style={{fontFamily: "'Share Tech Mono', monospace"}}>
+                            <AlertCircleIcon size={64} className="text-red-500 mb-4 mx-auto" />
+                            <h2 className="text-4xl text-[#ff00de] font-bold mb-4 tracking-widest">REACT ENGINE FAULT</h2>
+                            <p className="text-gray-300 max-w-2xl">{this.state.errorMsg}</p>
+                        </div>
+                    );
+                }
+                return this.props.children;
+            }
+        }
+
+        const Clock = () => {
+            const [time, setTime] = useState(new Date());
+
+            useEffect(() => {
+                const timer = setInterval(() => setTime(new Date()), 1000);
+                return () => clearInterval(timer);
+            }, []);
+
+            return (
+                <div className="absolute bottom-10 left-12 font-mono text-4xl font-bold tracking-widest text-white/50 z-40 drop-shadow-lg" style={{fontFamily: "'Share Tech Mono', monospace"}}>
+                    {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [movies, setMovies] = useState([]);
+            const [activeMovie, setActiveMovie] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+            const [isModalOpen, setIsModalOpen] = useState(false);
+
+            // Fetch the bulletproof CSV data from Google
+            const fetchSheetData = useCallback(async () => {
+                try {
+                    const url = GOOGLE_SHEET_PUBLISHED_URL.replace(/\/pubhtml.*/, '/pub?output=csv');
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error("Google Sheets rejected the connection.");
+                    
+                    const csvText = await response.text();
+                    if (csvText.trim().toLowerCase().startsWith('<!doctype html>')) throw new Error("Google blocked access.");
+
+                    const parsedRows = [];
+                    let quote = false;
+                    let row = 0, col = 0;
+                    for (let c = 0; c < csvText.length; c++) {
+                        let cc = csvText[c], nc = csvText[c+1];
+                        parsedRows[row] = parsedRows[row] || [];
+                        parsedRows[row][col] = parsedRows[row][col] || '';
+                        
+                        if (cc === '"' && quote && nc === '"') { parsedRows[row][col] += cc; ++c; continue; }
+                        if (cc === '"') { quote = !quote; continue; }
+                        if (cc === ',' && !quote) { ++col; continue; }
+                        if (cc === '\r' && nc === '\n' && !quote) { ++row; col = 0; ++c; continue; }
+                        if (cc === '\n' && !quote) { ++row; col = 0; continue; }
+                        if (cc === '\r' && !quote) { ++row; col = 0; continue; }
+                        
+                        parsedRows[row][col] += cc;
+                    }
+
+                    return parsedRows.map(r => ({
+                        title: r[0]?.trim(), 
+                        collectionInfo: r[1]?.trim() || null, 
+                    })).filter(m => m.title && m.title.toLowerCase() !== 'title' && m.title.toLowerCase() !== 'name');
+                } catch (err) {
+                    setError("Database Connection Error: " + err.message);
+                    return [];
+                }
+            }, []);
+
+            const fetchTMDBData = async (movieTitle) => {
+                if (!TMDB_API_KEY) return null;
+                try {
+                    const searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(movieTitle)}`;
+                    const res = await fetch(searchUrl);
+                    const data = await res.json();
+                    const movie = data.results[0];
+                    if (!movie) return null;
+
+                    // Note the addition of "videos" here to grab the trailer
+                    const detailUrl = `https://api.themoviedb.org/3/movie/${movie.id}?api_key=${TMDB_API_KEY}&append_to_response=images,videos`;
+                    const detailRes = await fetch(detailUrl);
+                    const details = await detailRes.json();
+
+                    // Find the official YouTube trailer
+                    const trailer = details.videos?.results?.find(v => v.type === 'Trailer' && v.site === 'YouTube');
+
+                    return {
+                        ...movie,
+                        logo: details.images?.logos?.find(l => l.iso_639_1 === 'en' || !l.iso_639_1)?.file_path,
+                        trailerKey: trailer ? trailer.key : null,
+                        fullDetails: details
+                    };
+                } catch (err) {
+                    return null;
+                }
+            };
+
+            useEffect(() => {
+                const init = async () => {
+                    setLoading(true);
+                    const sheetMovies = await fetchSheetData();
+                    const enrichedMovies = await Promise.all(
+                        sheetMovies.slice(0, 40).map(async (m) => {
+                            const tmdb = await fetchTMDBData(m.title);
+                            return tmdb ? { ...m, ...tmdb } : null;
+                        })
+                    );
+                    const filtered = enrichedMovies.filter(m => m !== null);
+                    
+                    // Shuffle array to make it truly random on boot
+                    for (let i = filtered.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+                    }
+                    
+                    setMovies(filtered);
+                    if (filtered.length > 0) setActiveMovie(filtered[0]);
+                    setLoading(false);
+                };
+                init();
+            }, [fetchSheetData]);
+
+            // Auto-Rotate Logic (15 seconds)
+            useEffect(() => {
+                // Pause rotation if there are no movies, or if the trailer modal is open
+                if (movies.length <= 1 || isModalOpen) return;
+                
+                const interval = setInterval(() => {
+                    setActiveMovie(current => {
+                        const currentIndex = movies.findIndex(m => m.id === current.id);
+                        const nextIndex = (currentIndex + 1) % movies.length;
+                        return movies[nextIndex];
+                    });
+                }, 15000); // 15 seconds
+
+                return () => clearInterval(interval);
+            }, [movies, isModalOpen]);
+
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    // Enter key (13), Select key, or Play/Pause media key
+                    if (e.keyCode === 13 || e.key === 'Enter' || e.keyCode === 179) {
+                        setIsModalOpen(true);
+                    }
+                    // Back key, Escape (27), or Browser Back (8)
+                    if (e.keyCode === 27 || e.key === 'Escape' || e.keyCode === 8) {
+                        setIsModalOpen(false);
+                    }
+                };
+                
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, []);
+
+            if (error) return (
+                <div className="h-screen bg-black flex flex-col items-center justify-center text-white p-10 text-center font-sans">
+                    <AlertCircleIcon size={64} className="text-red-500 mb-4" />
+                    <h2 className="text-2xl font-bold mb-2 tracking-widest uppercase">Database Error</h2>
+                    <p className="text-gray-400 max-w-md">{error}</p>
+                </div>
+            );
+
+            if (loading) return (
+                <div className="h-screen bg-black flex items-center justify-center text-white font-sans">
+                    <div className="animate-pulse flex flex-col items-center">
+                        <FilmIcon size={64} className="mb-4 text-red-600" />
+                        <p className="text-2xl tracking-[0.3em] uppercase font-black text-red-600" style={{fontFamily: "'Share Tech Mono', monospace"}}>Opening Vault...</p>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="h-screen w-screen bg-black overflow-hidden relative font-sans text-white">
+                    
+                    {/* Background Crossfade System */}
+                    <div className="absolute inset-0 transition-opacity duration-1000">
+                        <img 
+                            key={`bg-${activeMovie?.id}`} // Key forces re-render for transition
+                            src={`https://image.tmdb.org/t/p/original${activeMovie?.backdrop_path}`}
+                            className="w-full h-full object-cover filter blur-sm scale-105 bg-crossfade"
+                            alt=""
+                        />
+                        {/* Gradient Vignette overlay for text readability */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+                    </div>
+
+                    {/* Main UI Layout */}
+                    <div className="relative z-10 h-full flex flex-col justify-center p-16 lg:p-24 w-2/3">
+                        
+                        {/* Content block that fades in when a new movie rotates in */}
+                        <div key={`info-${activeMovie?.id}`} className="animate-fade-in">
+                            
+                            {activeMovie?.logo ? (
+                                <img 
+                                    src={`https://image.tmdb.org/t/p/w500${activeMovie.logo}`}
+                                    className="h-32 lg:h-48 mb-8 object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+                                    alt="logo"
+                                />
+                            ) : (
+                                <h1 className="text-6xl lg:text-8xl font-black italic uppercase tracking-tighter mb-4 leading-none" style={{fontFamily: "'Archivo Black', sans-serif"}}>
+                                    {activeMovie?.title}
+                                </h1>
+                            )}
+                            
+                            <div className="flex items-center space-x-4 mb-6 text-sm lg:text-lg font-bold uppercase tracking-widest text-gray-300">
+                                <span className="text-red-500 font-black text-xl">{activeMovie?.release_date?.split('-')[0]}</span>
+                                
+                                {activeMovie?.collectionInfo && (
+                                    <>
+                                        <span className="text-gray-500">|</span>
+                                        <span className="text-gray-300 border border-white/20 px-3 py-1 rounded bg-black/50 backdrop-blur-sm tracking-normal">
+                                            {activeMovie.collectionInfo}
+                                        </span>
+                                    </>
+                                )}
+                            </div>
+                            
+                            <p className="text-xl lg:text-2xl text-gray-200 line-clamp-4 leading-relaxed drop-shadow-xl font-medium max-w-3xl">
+                                {activeMovie?.overview}
+                            </p>
+                            
+                            {/* TV Remote Hint */}
+                            <div className="mt-12 flex items-center space-x-4 opacity-70 animate-pulse">
+                                <div className="border-2 border-white px-4 py-1 rounded-full font-black text-lg tracking-widest">OK</div>
+                                <span className="text-xl font-bold uppercase tracking-widest">Press Select for Details & Trailer</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <Clock />
+
+                    {/* Fullscreen Trailer Modal overlay */}
+                    {isModalOpen && (
+                        <div className="absolute inset-0 z-50 bg-black/95 backdrop-blur-2xl flex flex-col animate-fade-in">
+                            {/* Header */}
+                            <div className="absolute top-0 w-full p-8 flex justify-between items-center bg-gradient-to-b from-black to-transparent z-10">
+                                <h2 className="text-4xl font-black tracking-widest uppercase" style={{fontFamily: "'Archivo Black', sans-serif"}}>
+                                    {activeMovie?.title}
+                                </h2>
+                                <div className="flex items-center space-x-3 text-gray-400 font-bold uppercase tracking-widest">
+                                    <div className="border-2 border-gray-400 px-3 py-1 rounded-full text-sm">BACK</div>
+                                    <span>To Return</span>
+                                </div>
+                            </div>
+                            
+                            {/* Video Player / Fallback */}
+                            <div className="flex-1 w-full h-full flex items-center justify-center p-24">
+                                {activeMovie?.trailerKey ? (
+                                    <iframe 
+                                        className="w-full h-full rounded-2xl shadow-[0_0_100px_rgba(255,255,255,0.1)] border border-white/10"
+                                        src={`https://www.youtube.com/embed/${activeMovie.trailerKey}?autoplay=1&controls=0&modestbranding=1&rel=0`} 
+                                        title="Trailer" 
+                                        frameBorder="0" 
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                        allowFullScreen
+                                    ></iframe>
+                                ) : (
+                                    <div className="text-center">
+                                        <AlertCircleIcon size={64} className="mx-auto text-gray-600 mb-4" />
+                                        <p className="text-2xl text-gray-500 font-mono tracking-widest uppercase">No Official Trailer Found in Vault</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    <FilmGrainOverlay />
+                </div>
+            );
+        };
+
+        const FilmGrainOverlay = () => {
+            const canvasRef = useRef(null);
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                let animationFrameId;
+                const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+                const render = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    const imageData = ctx.createImageData(canvas.width, canvas.height);
+                    const data = imageData.data;
+                    for (let i = 0; i < data.length; i += 4) {
+                        const noise = Math.random() * 255;
+                        data[i] = noise; data[i + 1] = noise; data[i + 2] = noise; data[i + 3] = 12; 
+                    }
+                    ctx.putImageData(imageData, 0, 0);
+                    animationFrameId = requestAnimationFrame(render);
+                };
+                window.addEventListener('resize', resize);
+                resize();
+                render();
+                return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(animationFrameId); };
+            }, []);
+            return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-40 opacity-30 mix-blend-screen" />;
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(
+            <ErrorBoundary>
+                <App />
+            </ErrorBoundary>
+        );
+    </script>
+</body>
+</html>
