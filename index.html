@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Retro Cinema OS</title>
-    <!-- Pinned Stable Libraries -->
     <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
@@ -77,7 +76,6 @@
                 const timer = setInterval(() => setTime(new Date()), 1000);
                 return () => clearInterval(timer);
             }, []);
-            // Positioned exactly where you requested: Lower Left
             return (
                 <div className="absolute bottom-12 left-16 font-mono text-5xl font-bold tracking-widest text-white/50 z-40 drop-shadow-lg" style={{fontFamily: "'Share Tech Mono', monospace"}}>
                     {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -92,7 +90,7 @@
             const [error, setError] = useState(null);
             const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-            //            // Refs to allow our background timer to see current state without resetting
+            // Refs to allow our background timer and event listeners to see current state without resetting
             const masterSheetRef = useRef([]);
             const isDetailsOpenRef = useRef(false);
             
@@ -100,7 +98,7 @@
                 isDetailsOpenRef.current = isDetailsOpen;
             }, [isDetailsOpen]);
 
-            // Fetch the bulletproof CSV data from Google
+            // Fetch the CSV data from Google
             const fetchSheetData = useCallback(async () => {
                 try {
                     const url = GOOGLE_SHEET_PUBLISHED_URL.replace(/\/pubhtml.*/, '/pub?output=csv');
@@ -148,7 +146,6 @@
                     const detailUrl = `https://api.themoviedb.org/3/movie/${movie.id}?api_key=${TMDB_API_KEY}&append_to_response=images,videos`;
                     const detailRes = await fetch(detailUrl);
                     
-                    // If the deep details fail but search worked, return basic movie data so the app doesn't crash
                     if (!detailRes.ok) return movie; 
                     
                     const details = await detailRes.json();
@@ -165,7 +162,7 @@
                 }
             };
 
-            //            // The Engine that fetches 40 random movies
+            // Engine that fetches 40 random movies
             const loadBatch = async (allMovies) => {
                 if (!allMovies || allMovies.length === 0) return;
                 
@@ -183,7 +180,6 @@
                 
                 if (valid.length > 0) {
                     setMovies(valid);
-                    // Only forcefully change the poster if they aren't actively watching a trailer
                     if (!isDetailsOpenRef.current) {
                         setActiveMovie(valid[Math.floor(Math.random() * valid.length)]);
                     }
@@ -191,7 +187,7 @@
                 return valid;
             };
 
-            //            // 1. Initial Boot Sequence
+            // 1. Initial Boot Sequence
             useEffect(() => {
                 const bootOS = async () => {
                     setLoading(true);
@@ -201,21 +197,17 @@
                     const validMovies = await loadBatch(sheetMovies);
                     
                     if ((!validMovies || validMovies.length === 0) && sheetMovies.length > 0) {
-                        setError("TMDB Servers are currently experiencing a 502 Outage. Please try again in a few minutes.");
+                        setError("TMDB Servers are currently experiencing an outage. Please try again in a few minutes.");
                     }
                     setLoading(false);
                 };
                 bootOS();
             }, [fetchSheetData]);
 
-            //            // 2. The 10-Minute Silent Background Reshuffle
+            // 2. The 10-Minute Silent Background Reshuffle
             useEffect(() => {
-                // 600,000 milliseconds = exactly 10 minutes
                 const refreshTimer = setInterval(() => {
-                    // If they are watching a trailer, skip this reshuffle and let them enjoy the movie
                     if (isDetailsOpenRef.current) return;
-                    
-                    // Otherwise, silently download the next 40 movies
                     if (masterSheetRef.current.length > 0) {
                         loadBatch(masterSheetRef.current);
                     }
@@ -236,25 +228,29 @@
                 return () => clearInterval(interval);
             }, [movies, isDetailsOpen]);
 
-            // Fire TV Remote Control Logic
+            // Fire TV Remote Control Logic & Back Button Catching
             useEffect(() => {
                 const handleKeyDown = (e) => {
-                    if (movies.length === 0) return;
-                    
-                    // Enter / Select / Play opens Details & Trailer Modal
-                    if (!isDetailsOpen && (e.keyCode === 13 || e.key === 'Enter' || e.keyCode === 179)) {
-                        setIsDetailsOpen(true);
+                    const isBackKey = e.keyCode === 4 || e.keyCode === 27 || e.keyCode === 8 || e.key === 'Escape' || e.key === 'Backspace' || e.key === 'GoBack';
+
+                    // If Details/Trailer is open and Back button is pressed
+                    if (isDetailsOpenRef.current && isBackKey) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsDetailsOpen(false);
+                        return;
                     }
                     
-                    // Escape / Back closes Modal and returns to rotation
-                    if (isDetailsOpen && (e.keyCode === 27 || e.key === 'Escape' || e.keyCode === 8)) {
-                        setIsDetailsOpen(false);
+                    // Enter / Select / Play opens Details & Trailer Modal
+                    if (!isDetailsOpenRef.current && (e.keyCode === 13 || e.key === 'Enter' || e.keyCode === 179)) {
+                        setIsDetailsOpen(true);
                     }
                 };
                 
-                window.addEventListener('keydown', handleKeyDown);
-                return () => window.removeEventListener('keydown', handleKeyDown);
-            }, [movies, isDetailsOpen]);
+                // Use capture phase (true) to intercept the back key before web view default exit handles it
+                window.addEventListener('keydown', handleKeyDown, true);
+                return () => window.removeEventListener('keydown', handleKeyDown, true);
+            }, [movies]);
 
             if (error) return (
                 <div className="h-screen bg-black flex flex-col items-center justify-center text-white p-10 text-center font-sans">
@@ -276,7 +272,7 @@
             return (
                 <div className="h-screen w-screen bg-black overflow-hidden relative font-sans text-white">
                     
-                    {/* The Background Movie Image */}
+                    {/* Background Movie Image */}
                     <div className="absolute inset-0 transition-opacity duration-1000 animate-fade-in" key={`bg-${activeMovie?.id}`}>
                         <img 
                             src={`https://image.tmdb.org/t/p/original${activeMovie?.backdrop_path}`}
