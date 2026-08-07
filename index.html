@@ -103,18 +103,30 @@
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
             const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-            const [dominantColor, setDominantColor] = useState('rgba(255,255,255,0.5)'); // Default glow color
+            const [showVideo, setShowVideo] = useState(false); // New state to control video loading
+            const [dominantColor, setDominantColor] = useState('rgba(255,255,255,0.5)'); 
 
             const masterSheetRef = useRef([]);
             const isDetailsOpenRef = useRef(false);
             
+            // SYNC REF & MANAGE VIDEO DELAY
             useEffect(() => {
                 isDetailsOpenRef.current = isDetailsOpen;
                 if (isDetailsOpen) {
                     window.history.pushState({ modalOpen: true }, '');
+                    
+                    // Delay the video load by 1.5 seconds to allow the fade-in animation to finish!
+                    const videoTimer = setTimeout(() => {
+                        setShowVideo(true);
+                    }, 1500);
+                    return () => clearTimeout(videoTimer);
+                } else {
+                    // Instantly destroy the video when closing the modal
+                    setShowVideo(false);
                 }
             }, [isDetailsOpen]);
 
+            // FIRE TV BACK BUTTON TRAP
             useEffect(() => {
                 window.history.pushState("trapped", "");
                 const handlePopState = () => {
@@ -149,17 +161,16 @@
                 if (!activeMovie || !activeMovie.backdrop_path) return;
                 
                 const img = new Image();
-                img.crossOrigin = 'Anonymous'; // Required to read image data from TMDB
-                img.src = `https://image.tmdb.org/t/p/w300${activeMovie.backdrop_path}`; // Use smaller image for fast processing
+                img.crossOrigin = 'Anonymous'; 
+                img.src = `https://image.tmdb.org/t/p/w300${activeMovie.backdrop_path}`; 
                 
                 img.onload = () => {
                     try {
                         const colorThief = new ColorThief();
                         const color = colorThief.getColor(img);
-                        // Convert RGB array to CSS string with some transparency for glow
                         setDominantColor(`rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.8)`);
                     } catch (e) {
-                        setDominantColor('rgba(255,255,255,0.5)'); // Fallback
+                        setDominantColor('rgba(255,255,255,0.5)'); 
                     }
                 };
             }, [activeMovie]);
@@ -382,14 +393,21 @@
                             
                             <div className="w-2/3 h-full flex items-center justify-center bg-black relative">
                                 {activeMovie?.trailerKey ? (
-                                    <iframe 
-                                        className="w-full h-full bg-black"
-                                        src={`https://www.youtube.com/embed/${activeMovie.trailerKey}?autoplay=1&controls=1&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3`} 
-                                        title="Trailer" 
-                                        frameBorder="0" 
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                        allowFullScreen
-                                    ></iframe>
+                                    showVideo ? (
+                                        <iframe 
+                                            className="w-full h-full bg-black animate-fade-in"
+                                            src={`https://www.youtube.com/embed/${activeMovie.trailerKey}?autoplay=1&controls=1&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3`} 
+                                            title="Trailer" 
+                                            frameBorder="0" 
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                            allowFullScreen
+                                        ></iframe>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center text-red-600 animate-pulse opacity-60">
+                                            <FilmIcon size={64} className="mb-4" />
+                                            <p className="text-xl tracking-[0.3em] uppercase font-black" style={{fontFamily: "'Share Tech Mono', monospace"}}>Warming Up Projector...</p>
+                                        </div>
+                                    )
                                 ) : (
                                     <div className="text-center">
                                         <AlertCircleIcon size={64} className="mx-auto text-gray-600 mb-4" />
