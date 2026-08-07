@@ -94,9 +94,25 @@
             const masterSheetRef = useRef([]);
             const isDetailsOpenRef = useRef(false);
             
+            // 1. SYNCS REF AND PUSHES HISTORY STATE FOR FIRE TV BACK BUTTON
             useEffect(() => {
                 isDetailsOpenRef.current = isDetailsOpen;
+                // Push a fake history state when modal opens so the physical Back button has something to consume
+                if (isDetailsOpen) {
+                    window.history.pushState({ modalOpen: true }, '');
+                }
             }, [isDetailsOpen]);
+
+            // 2. CATCHES THE NATIVE SYSTEM BACK ACTION
+            useEffect(() => {
+                const handlePopState = (event) => {
+                    if (isDetailsOpenRef.current) {
+                        setIsDetailsOpen(false);
+                    }
+                };
+                window.addEventListener('popstate', handlePopState);
+                return () => window.removeEventListener('popstate', handlePopState);
+            }, []);
 
             // Fetch the CSV data from Google
             const fetchSheetData = useCallback(async () => {
@@ -231,13 +247,20 @@
             // Fire TV Remote Control Logic & Back Button Catching
             useEffect(() => {
                 const handleKeyDown = (e) => {
-                    const isBackKey = e.keyCode === 4 || e.keyCode === 27 || e.keyCode === 8 || e.key === 'Escape' || e.key === 'Backspace' || e.key === 'GoBack';
+                    // EXPLICIT HARDWARE FIX: Includes Amazon's 10009 and generic 461/4 TV codes
+                    const isBackKey = e.keyCode === 4 || e.keyCode === 27 || e.keyCode === 8 || e.keyCode === 10009 || e.keyCode === 461 || e.key === 'Escape' || e.key === 'Backspace' || e.key === 'GoBack';
 
                     // If Details/Trailer is open and Back button is pressed
                     if (isDetailsOpenRef.current && isBackKey) {
                         e.preventDefault();
                         e.stopPropagation();
-                        setIsDetailsOpen(false);
+                        
+                        // Fire the history back to consume the fake state (which triggers popstate), or manually close if no state
+                        if (window.history.state && window.history.state.modalOpen) {
+                            window.history.back();
+                        } else {
+                            setIsDetailsOpen(false);
+                        }
                         return;
                     }
                     
