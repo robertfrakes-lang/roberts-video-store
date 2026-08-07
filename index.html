@@ -393,11 +393,13 @@
                                     </h1>
                                 )}
 
-                                {/* Collection / Box Set Badge - ENLARGED */}
+                                {/* Collection / Box Set Badge - LARGER & MATCHED RETRO STYLING */}
                                 {activeMovie?.collectionInfo && (
-                                    <div className="mb-6 ml-2 inline-block px-5 py-2 bg-black/80 border rounded font-bold text-xl tracking-[0.2em] uppercase shadow-lg" 
-                                         style={{ fontFamily: "'Share Tech Mono', monospace", borderColor: dominantColor }}>
-                                        <span style={{ color: dominantColor.replace('0.8', '1') }}>PART OF:</span> {activeMovie.collectionInfo}
+                                    <div className="mb-6 ml-2">
+                                        <span className="inline-block px-5 py-2 bg-black/80 border rounded font-bold text-2xl tracking-[0.2em] uppercase shadow-lg" 
+                                              style={{ fontFamily: "'Share Tech Mono', monospace", borderColor: 'var(--movie-neon)', color: 'white' }}>
+                                            <span style={{ color: 'var(--movie-neon)' }}>PART OF:</span> {activeMovie.collectionInfo}
+                                        </span>
                                     </div>
                                 )}
                                 
@@ -424,7 +426,7 @@
                                 {activeMovie?.release_date && (
                                     <div className="mb-8 ml-2">
                                         <span className="inline-block px-4 py-1.5 bg-black/80 border rounded font-bold text-lg tracking-widest uppercase shadow-lg"
-                                              style={{ fontFamily: "'Share Tech Mono', monospace", borderColor: 'white', color: 'white' }}>
+                                              style={{ fontFamily: "'Share Tech Mono', monospace", borderColor: 'var(--movie-neon)', color: 'white' }}>
                                             <span style={{ color: 'var(--movie-neon)' }}>YEAR:</span> {activeMovie.release_date.split('-')[0]}
                                         </span>
                                     </div>
