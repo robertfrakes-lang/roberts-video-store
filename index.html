@@ -8,7 +8,9 @@
     <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Archivo+Black&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.0/color-thief.umd.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Archivo+Black&family=Monoton&display=swap" rel="stylesheet">
+    
     <style>
         body { background-color: black; margin: 0; overflow: hidden; cursor: none; color: white; font-family: sans-serif; }
         
@@ -18,11 +20,32 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .animate-fade-in { animation: fadeIn 1.5s ease-in-out forwards; }
 
-        /* Retro CRT Pixel Grid Overlay (Sweeping scanline removed) */
+        /* The Slow Zoom (Ken Burns) Effect */
+        @keyframes slowZoom {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.15); }
+        }
+        .ken-burns {
+            animation: slowZoom 20s linear forwards;
+        }
+
+        /* Static CRT Grid */
         .crt-grid {
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
             background-size: 100% 3px, 3px 100%;
             pointer-events: none;
+        }
+        
+        /* Marquee Styling */
+        .cinema-marquee {
+            font-family: 'Monoton', cursive;
+            color: #ff0000;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.8), 0 0 20px rgba(255, 0, 0, 0.6);
+            border: 4px dotted #ffcc00;
+            padding: 15px 30px;
+            display: inline-block;
+            background: rgba(0,0,0,0.7);
+            border-radius: 10px;
         }
     </style>
 </head>
@@ -37,14 +60,13 @@
 
     <script>
         window.addEventListener('error', function(e) {
-            if (e.message && e.message.includes('import call expects')) return; // Ignore Vercel injections
+            if (e.message && e.message.includes('import call expects')) return; 
             var rootDiv = document.getElementById('root');
             if (rootDiv && rootDiv.innerHTML.includes('BOOTING CINEMA OS')) {
                 rootDiv.innerHTML = '<div style="padding:40px; color:#ff00de; font-family:\'Share Tech Mono\', monospace; text-align:center; margin-top:20vh;"><h2>FATAL SYSTEM FAULT</h2><p style="color:white;">' + e.message + '</p></div>';
             }
         });
 
-        // Force Babel to use classic runtime
         Babel.registerPreset('react-classic', {
             presets: [ [Babel.availablePresets['react'], { "runtime": "classic" }] ]
         });
@@ -81,53 +103,40 @@
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
             const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+            const [dominantColor, setDominantColor] = useState('rgba(255,255,255,0.5)'); // Default glow color
 
-            // Refs to allow our background timer and event listeners to see current state without resetting
             const masterSheetRef = useRef([]);
             const isDetailsOpenRef = useRef(false);
             
-            // 1. SYNC REF SO EVENT LISTENERS KNOW IF MODAL IS OPEN
             useEffect(() => {
                 isDetailsOpenRef.current = isDetailsOpen;
+                if (isDetailsOpen) {
+                    window.history.pushState({ modalOpen: true }, '');
+                }
             }, [isDetailsOpen]);
 
-            // 2. BULLETPROOF FIRE TV BACK BUTTON TRAP
             useEffect(() => {
-                // Instantly trap the browser history on mount
                 window.history.pushState("trapped", "");
-
-                // Listen for native OS back requests
                 const handlePopState = () => {
-                    if (isDetailsOpenRef.current) {
-                        setIsDetailsOpen(false); // Close details instead of exiting
-                    }
-                    // Re-push state so the app NEVER naturally exits back to the system launcher
+                    if (isDetailsOpenRef.current) setIsDetailsOpen(false);
                     window.history.pushState("trapped", ""); 
                 };
 
-                // Listen for literal remote control hardware button presses
                 const handleKeyDown = (e) => {
-                    // Includes Amazon's explicit back key (10009) and generic android backs (4/27/8)
                     const isBackKey = e.keyCode === 4 || e.keyCode === 27 || e.keyCode === 8 || e.keyCode === 10009 || e.keyCode === 461 || e.key === 'Escape' || e.key === 'Backspace' || e.key === 'GoBack';
-
                     if (isBackKey) {
                         e.preventDefault();
                         e.stopPropagation();
-                        if (isDetailsOpenRef.current) {
-                            setIsDetailsOpen(false);
-                        }
+                        if (isDetailsOpenRef.current) setIsDetailsOpen(false);
                         return;
                     }
-                    
-                    // Enter / Select / Play opens Details & Trailer Modal
                     if (!isDetailsOpenRef.current && (e.keyCode === 13 || e.key === 'Enter' || e.keyCode === 179)) {
                         setIsDetailsOpen(true);
                     }
                 };
                 
-                // Mount listeners
                 window.addEventListener('popstate', handlePopState);
-                window.addEventListener('keydown', handleKeyDown, true); // True = capture phase
+                window.addEventListener('keydown', handleKeyDown, true); 
                 
                 return () => {
                     window.removeEventListener('popstate', handlePopState);
@@ -135,7 +144,26 @@
                 };
             }, []);
 
-            // Fetch the CSV data from Google
+            // Dynamic Color Extractor
+            useEffect(() => {
+                if (!activeMovie || !activeMovie.backdrop_path) return;
+                
+                const img = new Image();
+                img.crossOrigin = 'Anonymous'; // Required to read image data from TMDB
+                img.src = `https://image.tmdb.org/t/p/w300${activeMovie.backdrop_path}`; // Use smaller image for fast processing
+                
+                img.onload = () => {
+                    try {
+                        const colorThief = new ColorThief();
+                        const color = colorThief.getColor(img);
+                        // Convert RGB array to CSS string with some transparency for glow
+                        setDominantColor(`rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.8)`);
+                    } catch (e) {
+                        setDominantColor('rgba(255,255,255,0.5)'); // Fallback
+                    }
+                };
+            }, [activeMovie]);
+
             const fetchSheetData = useCallback(async () => {
                 try {
                     const url = GOOGLE_SHEET_PUBLISHED_URL.replace(/\/pubhtml.*/, '/pub?output=csv');
@@ -199,10 +227,8 @@
                 }
             };
 
-            // Engine that fetches 40 random movies
             const loadBatch = async (allMovies) => {
                 if (!allMovies || allMovies.length === 0) return;
-                
                 const shuffled = [...allMovies].sort(() => 0.5 - Math.random());
                 const batch = shuffled.slice(0, 40);
                 
@@ -224,7 +250,6 @@
                 return valid;
             };
 
-            // 1. Initial Boot Sequence
             useEffect(() => {
                 const bootOS = async () => {
                     setLoading(true);
@@ -232,16 +257,14 @@
                     masterSheetRef.current = sheetMovies;
                     
                     const validMovies = await loadBatch(sheetMovies);
-                    
                     if ((!validMovies || validMovies.length === 0) && sheetMovies.length > 0) {
-                        setError("TMDB Servers are currently experiencing an outage. Please try again in a few minutes.");
+                        setError("TMDB Servers are currently experiencing an outage.");
                     }
                     setLoading(false);
                 };
                 bootOS();
             }, [fetchSheetData]);
 
-            // 2. The 10-Minute Silent Background Reshuffle
             useEffect(() => {
                 const refreshTimer = setInterval(() => {
                     if (isDetailsOpenRef.current) return;
@@ -249,19 +272,15 @@
                         loadBatch(masterSheetRef.current);
                     }
                 }, 600000); 
-
                 return () => clearInterval(refreshTimer);
             }, []);
 
-            // Random Rotator Logic (Every 15 Seconds)
             useEffect(() => {
                 if (movies.length <= 1 || isDetailsOpen) return;
-                
                 const interval = setInterval(() => {
                     const randomIndex = Math.floor(Math.random() * movies.length);
                     setActiveMovie(movies[randomIndex]);
                 }, 15000); 
-
                 return () => clearInterval(interval);
             }, [movies, isDetailsOpen]);
 
@@ -285,42 +304,54 @@
             return (
                 <div className="h-screen w-screen bg-black overflow-hidden relative font-sans text-white">
                     
-                    {/* Background Movie Image */}
+                    {/* Background Movie Image with Ken Burns Effect */}
                     <div className="absolute inset-0 transition-opacity duration-1000 animate-fade-in" key={`bg-${activeMovie?.id}`}>
                         <img 
                             src={`https://image.tmdb.org/t/p/original${activeMovie?.backdrop_path}`}
-                            className="w-full h-full object-cover opacity-60"
+                            className="w-full h-full object-cover opacity-60 ken-burns"
                             alt=""
                         />
                         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent" />
                     </div>
 
-                    {/* CRT Screen Effects (Static Grid Only) */}
                     <div className="absolute inset-0 crt-grid z-30" />
 
-                    {/* Lower Left Clock */}
                     {!isDetailsOpen && <Clock />}
 
                     {/* Main Idle UI */}
                     {!isDetailsOpen && (
                         <div className="relative z-20 h-full flex flex-col justify-center p-16 animate-fade-in" key={`ui-${activeMovie?.id}`}>
                             <div className="max-w-4xl w-full">
+                                
+                                {/* Logo or Marquee Title */}
                                 {activeMovie?.logo ? (
                                     <img 
                                         src={`https://image.tmdb.org/t/p/w500${activeMovie.logo}`}
-                                        className="h-56 w-auto max-w-full mb-6 object-contain object-left drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]"
+                                        className="h-56 w-auto max-w-full mb-4 object-contain object-left transition-all duration-1000"
+                                        style={{ filter: `drop-shadow(0 0 20px ${dominantColor})` }}
                                         alt="logo"
                                     />
                                 ) : (
-                                    <h1 className="text-7xl font-black italic uppercase tracking-tighter mb-4 leading-none" style={{fontFamily: "'Archivo Black', sans-serif"}}>
+                                    <h1 className="text-7xl mb-4 cinema-marquee" style={{boxShadow: `0 0 30px ${dominantColor}`}}>
                                         {activeMovie?.title}
                                     </h1>
                                 )}
                                 
-                                <div className="mt-12 flex items-center space-x-4 bg-black/60 border border-white/20 backdrop-blur-md w-fit px-6 py-3 rounded-full animate-pulse">
-                                    <div className="w-4 h-4 rounded-full bg-red-600" />
-                                    <span className="text-xl font-bold tracking-[0.2em] uppercase">Press OK for Details</span>
+                                {/* Genre Badges */}
+                                <div className="flex flex-wrap gap-3 mb-8 ml-2">
+                                    {activeMovie?.fullDetails?.genres?.slice(0, 3).map(g => (
+                                        <span key={g.id} className="px-3 py-1 bg-black/70 border border-white/30 text-white/90 text-sm font-bold tracking-widest uppercase rounded">
+                                            {g.name}
+                                        </span>
+                                    ))}
                                 </div>
+                                
+                                {/* Themed Pulse Button */}
+                                <div className="flex items-center space-x-4 bg-black/60 border border-white/20 backdrop-blur-md w-fit px-6 py-3 rounded-full animate-pulse ml-2">
+                                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: dominantColor.replace('0.8', '1') }} />
+                                    <span className="text-xl font-bold tracking-[0.2em] uppercase text-white/90">Press OK for Details</span>
+                                </div>
+                                
                             </div>
                         </div>
                     )}
@@ -328,10 +359,8 @@
                     {/* Details & Trailer Modal */}
                     {isDetailsOpen && (
                         <div className="absolute inset-0 z-50 bg-black/95 flex flex-row animate-fade-in">
-                            
-                            {/* Left Side: Details */}
                             <div className="w-1/3 h-full p-16 flex flex-col justify-center border-r border-white/10 bg-black z-10 relative">
-                                <h2 className="text-4xl font-black tracking-tighter uppercase mb-2" style={{fontFamily: "'Archivo Black', sans-serif"}}>
+                                <h2 className="text-4xl font-black tracking-tighter uppercase mb-2 text-white" style={{fontFamily: "'Archivo Black', sans-serif"}}>
                                     {activeMovie?.title}
                                 </h2>
                                 
@@ -351,7 +380,6 @@
                                 </div>
                             </div>
                             
-                            {/* Right Side: Auto-playing Trailer */}
                             <div className="w-2/3 h-full flex items-center justify-center bg-zinc-900 relative">
                                 {activeMovie?.trailerKey ? (
                                     <iframe 
