@@ -393,7 +393,7 @@
                                     </h1>
                                 )}
 
-                                {/* Collection / Box Set Badge - LARGER & MATCHED RETRO STYLING */}
+                                {/* Collection / Box Set Badge */}
                                 {activeMovie?.collectionInfo && (
                                     <div className="mb-6 ml-2">
                                         <span className="inline-block px-5 py-2 bg-black/80 border rounded font-bold text-2xl tracking-[0.2em] uppercase shadow-lg" 
@@ -402,17 +402,8 @@
                                         </span>
                                     </div>
                                 )}
-                                
-                                {/* Genre Badges - ENLARGED */}
-                                <div className="flex flex-wrap gap-3 mb-4 ml-2">
-                                    {activeMovie?.fullDetails?.genres?.slice(0, 3).map(g => (
-                                        <span key={g.id} className="px-4 py-1.5 bg-black/70 border border-white/30 text-white/90 text-lg font-bold tracking-widest uppercase rounded">
-                                            {g.name}
-                                        </span>
-                                    ))}
-                                </div>
 
-                                {/* FORMAT BADGE - ENLARGED */}
+                                {/* FORMAT BADGE */}
                                 {activeMovie?.format && (
                                     <div className="mb-4 ml-2">
                                         <span className="inline-block px-4 py-1.5 bg-black/80 border rounded font-bold text-lg tracking-widest uppercase shadow-lg"
@@ -422,15 +413,24 @@
                                     </div>
                                 )}
 
-                                {/* RELEASE YEAR BADGE - ENLARGED */}
+                                {/* RELEASE YEAR BADGE */}
                                 {activeMovie?.release_date && (
-                                    <div className="mb-8 ml-2">
+                                    <div className="mb-4 ml-2">
                                         <span className="inline-block px-4 py-1.5 bg-black/80 border rounded font-bold text-lg tracking-widest uppercase shadow-lg"
                                               style={{ fontFamily: "'Share Tech Mono', monospace", borderColor: 'var(--movie-neon)', color: 'white' }}>
                                             <span style={{ color: 'var(--movie-neon)' }}>YEAR:</span> {activeMovie.release_date.split('-')[0]}
                                         </span>
                                     </div>
                                 )}
+                                
+                                {/* GENRE BADGES (Moved below Year) */}
+                                <div className="flex flex-wrap gap-3 mb-8 ml-2">
+                                    {activeMovie?.fullDetails?.genres?.slice(0, 3).map(g => (
+                                        <span key={g.id} className="px-4 py-1.5 bg-black/70 border border-white/30 text-white/90 text-lg font-bold tracking-widest uppercase rounded">
+                                            {g.name}
+                                        </span>
+                                    ))}
+                                </div>
                                 
                                 <div className="flex items-center space-x-4 bg-black/60 border border-white/20 backdrop-blur-md w-fit px-6 py-3 rounded-full animate-pulse ml-2">
                                     <div className="w-4 h-4 rounded-full" style={{ backgroundColor: 'var(--movie-neon)' }} />
@@ -448,7 +448,6 @@
                                     {activeMovie?.title}
                                 </h2>
                                 
-                                {/* Details Meta Data - ENLARGED */}
                                 <div className="flex items-center flex-wrap space-x-3 mb-8 text-lg font-bold tracking-widest text-gray-400 leading-loose">
                                     <span className="text-white">{activeMovie?.release_date?.split('-')[0]}</span>
                                     <span>•</span>
