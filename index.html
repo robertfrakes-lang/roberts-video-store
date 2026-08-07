@@ -220,10 +220,24 @@
                         parsedRows[row][col] += cc;
                     }
 
-                    return parsedRows.map(r => ({
-                        title: r[0]?.trim(), 
-                        collectionInfo: r[1]?.trim() || null, 
-                    })).filter(m => m.title && m.title.toLowerCase() !== 'title' && m.title.toLowerCase() !== 'name');
+                    return parsedRows.map(r => {
+                        const title = r[0]?.trim();
+                        // Parse Column C (Index 2) to find out if it's from a Box Set collection
+                        const formatString = r[2]?.trim() || '';
+                        let collectionInfo = null;
+
+                        if (formatString.toLowerCase().includes('from')) {
+                            const match = formatString.split(/from/i)[1];
+                            if (match) {
+                                collectionInfo = match.replace(/[()]/g, '').trim();
+                            }
+                        }
+
+                        return {
+                            title, 
+                            collectionInfo
+                        };
+                    }).filter(m => m.title && m.title.toLowerCase() !== 'title' && m.title.toLowerCase() !== 'name');
                 } catch (err) {
                     setError("Database Connection Error: " + err.message);
                     return [];
@@ -375,6 +389,14 @@
                                         {activeMovie?.title}
                                     </h1>
                                 )}
+
+                                {/* Collection / Box Set Badge */}
+                                {activeMovie?.collectionInfo && (
+                                    <div className="mb-6 ml-2 inline-block px-4 py-1.5 bg-black/80 border rounded font-bold text-lg tracking-[0.2em] uppercase shadow-lg" 
+                                         style={{ fontFamily: "'Share Tech Mono', monospace", borderColor: dominantColor }}>
+                                        <span style={{ color: dominantColor.replace('0.8', '1') }}>PART OF:</span> {activeMovie.collectionInfo}
+                                    </div>
+                                )}
                                 
                                 <div className="flex flex-wrap gap-3 mb-8 ml-2">
                                     {activeMovie?.fullDetails?.genres?.slice(0, 3).map(g => (
@@ -400,10 +422,18 @@
                                     {activeMovie?.title}
                                 </h2>
                                 
-                                <div className="flex items-center space-x-3 mb-8 text-sm font-bold tracking-widest text-gray-400">
+                                <div className="flex items-center flex-wrap space-x-3 mb-8 text-sm font-bold tracking-widest text-gray-400 leading-loose">
                                     <span className="text-white">{activeMovie?.release_date?.split('-')[0]}</span>
                                     <span>•</span>
                                     <span>{activeMovie?.fullDetails?.genres?.map(g => g.name).slice(0, 2).join(', ')}</span>
+                                    
+                                    {/* Added Collection to details metadata */}
+                                    {activeMovie?.collectionInfo && (
+                                        <>
+                                            <span>•</span>
+                                            <span className="text-white">BOX SET: {activeMovie.collectionInfo}</span>
+                                        </>
+                                    )}
                                 </div>
                                 
                                 <p className="text-xl text-gray-300 leading-relaxed mb-12">
