@@ -222,7 +222,6 @@
 
                     return parsedRows.map(r => {
                         const title = r[0]?.trim();
-                        // Parse Column C (Index 2) to find out if it's from a Box Set collection
                         const formatString = r[2]?.trim() || '';
                         let collectionInfo = null;
                         let cleanFormat = formatString;
@@ -281,7 +280,7 @@
             const loadBatch = async (allMovies) => {
                 if (!allMovies || allMovies.length === 0) return;
                 const shuffled = [...allMovies].sort(() => 0.5 - Math.random());
-                const batch = shuffled.slice(0, 80); // BUMPED TO 80
+                const batch = shuffled.slice(0, 80); 
                 
                 const enriched = await Promise.all(
                     batch.map(async (m) => {
@@ -394,28 +393,39 @@
                                     </h1>
                                 )}
 
-                                {/* Collection / Box Set Badge */}
+                                {/* Collection / Box Set Badge - ENLARGED */}
                                 {activeMovie?.collectionInfo && (
-                                    <div className="mb-6 ml-2 inline-block px-4 py-1.5 bg-black/80 border rounded font-bold text-lg tracking-[0.2em] uppercase shadow-lg" 
+                                    <div className="mb-6 ml-2 inline-block px-5 py-2 bg-black/80 border rounded font-bold text-xl tracking-[0.2em] uppercase shadow-lg" 
                                          style={{ fontFamily: "'Share Tech Mono', monospace", borderColor: dominantColor }}>
                                         <span style={{ color: dominantColor.replace('0.8', '1') }}>PART OF:</span> {activeMovie.collectionInfo}
                                     </div>
                                 )}
                                 
+                                {/* Genre Badges - ENLARGED */}
                                 <div className="flex flex-wrap gap-3 mb-4 ml-2">
                                     {activeMovie?.fullDetails?.genres?.slice(0, 3).map(g => (
-                                        <span key={g.id} className="px-3 py-1 bg-black/70 border border-white/30 text-white/90 text-sm font-bold tracking-widest uppercase rounded">
+                                        <span key={g.id} className="px-4 py-1.5 bg-black/70 border border-white/30 text-white/90 text-lg font-bold tracking-widest uppercase rounded">
                                             {g.name}
                                         </span>
                                     ))}
                                 </div>
 
-                                {/* NEW FORMAT BADGE */}
+                                {/* FORMAT BADGE - ENLARGED */}
                                 {activeMovie?.format && (
-                                    <div className="mb-8 ml-2">
-                                        <span className="inline-block px-3 py-1 bg-black/80 border rounded font-bold text-sm tracking-widest uppercase shadow-lg"
+                                    <div className="mb-4 ml-2">
+                                        <span className="inline-block px-4 py-1.5 bg-black/80 border rounded font-bold text-lg tracking-widest uppercase shadow-lg"
                                               style={{ fontFamily: "'Share Tech Mono', monospace", borderColor: 'var(--movie-neon)', color: 'white' }}>
                                             <span style={{ color: 'var(--movie-neon)' }}>FORMAT:</span> {activeMovie.format}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* RELEASE YEAR BADGE - ENLARGED */}
+                                {activeMovie?.release_date && (
+                                    <div className="mb-8 ml-2">
+                                        <span className="inline-block px-4 py-1.5 bg-black/80 border rounded font-bold text-lg tracking-widest uppercase shadow-lg"
+                                              style={{ fontFamily: "'Share Tech Mono', monospace", borderColor: 'white', color: 'white' }}>
+                                            <span style={{ color: 'var(--movie-neon)' }}>YEAR:</span> {activeMovie.release_date.split('-')[0]}
                                         </span>
                                     </div>
                                 )}
@@ -436,12 +446,12 @@
                                     {activeMovie?.title}
                                 </h2>
                                 
-                                <div className="flex items-center flex-wrap space-x-3 mb-8 text-sm font-bold tracking-widest text-gray-400 leading-loose">
+                                {/* Details Meta Data - ENLARGED */}
+                                <div className="flex items-center flex-wrap space-x-3 mb-8 text-lg font-bold tracking-widest text-gray-400 leading-loose">
                                     <span className="text-white">{activeMovie?.release_date?.split('-')[0]}</span>
                                     <span>•</span>
                                     <span>{activeMovie?.fullDetails?.genres?.map(g => g.name).slice(0, 2).join(', ')}</span>
                                     
-                                    {/* Added Format & Collection to details metadata */}
                                     {activeMovie?.format && (
                                         <>
                                             <span>•</span>
