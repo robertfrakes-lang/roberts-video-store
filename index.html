@@ -41,16 +41,13 @@
             pointer-events: none;
         }
         
-        /* Marquee Styling */
-        .cinema-marquee {
-            font-family: 'Monoton', cursive;
-            color: var(--movie-neon);
-            text-shadow: 0 0 10px rgba(255, 51, 153, 0.8), 0 0 20px rgba(255, 51, 153, 0.6);
-            border: 4px dotted #ffcc00;
-            padding: 15px 30px;
-            display: inline-block;
-            background: rgba(0,0,0,0.7);
-            border-radius: 10px;
+        /* Clean Fallback Title Styling (No border, clean white font with subtle drop shadow) */
+        .fallback-title {
+            font-family: 'Archivo Black', sans-serif;
+            color: #ffffff;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.9), 0 0 30px rgba(255, 51, 153, 0.4);
+            line-height: 1.1;
+            letter-spacing: -0.02em;
         }
 
         /* Robert's Store Exact Logo CSS */
@@ -388,7 +385,7 @@
                                         alt="logo"
                                     />
                                 ) : (
-                                    <h1 className="text-7xl mb-4 cinema-marquee" style={{boxShadow: `0 0 30px ${dominantColor}`}}>
+                                    <h1 className="text-6xl mb-6 fallback-title max-w-2xl">
                                         {activeMovie?.title}
                                     </h1>
                                 )}
@@ -423,7 +420,7 @@
                                     </div>
                                 )}
                                 
-                                {/* GENRE BADGES (Moved below Year) */}
+                                {/* GENRE BADGES */}
                                 <div className="flex flex-wrap gap-3 mb-8 ml-2">
                                     {activeMovie?.fullDetails?.genres?.slice(0, 3).map(g => (
                                         <span key={g.id} className="px-4 py-1.5 bg-black/70 border border-white/30 text-white/90 text-lg font-bold tracking-widest uppercase rounded">
