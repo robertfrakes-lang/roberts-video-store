@@ -380,12 +380,11 @@
                                 </div>
                             </div>
                             
-                            <div className="w-2/3 h-full flex items-center justify-center bg-zinc-900 relative">
+                            <div className="w-2/3 h-full flex items-center justify-center bg-black relative">
                                 {activeMovie?.trailerKey ? (
                                     <iframe 
-                                        className="w-full h-full"
-                                        style={{ transform: 'translateZ(0)' }}
-                                        src={`https://www.youtube.com/embed/${activeMovie.trailerKey}?autoplay=1&controls=1&modestbranding=1&rel=0`} 
+                                        className="w-full h-full bg-black"
+                                        src={`https://www.youtube.com/embed/${activeMovie.trailerKey}?autoplay=1&controls=1&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3`} 
                                         title="Trailer" 
                                         frameBorder="0" 
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
