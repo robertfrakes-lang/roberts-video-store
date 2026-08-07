@@ -321,7 +321,23 @@
 
                     <div className="absolute inset-0 crt-grid z-30" />
 
+                    {/* Bottom Left Clock */}
                     {!isDetailsOpen && <Clock />}
+
+                    {/* TOP RIGHT LOGO */}
+                    {!isDetailsOpen && (
+                        <div className="absolute top-12 right-16 z-40 flex flex-col items-end opacity-75 drop-shadow-2xl animate-fade-in">
+                            {/* If your logo is an image, delete the <h2> tags below and uncomment this <img> tag: */}
+                            {/* <img src="YOUR_LOGO_URL_HERE.png" alt="Robert's Video Store" className="h-16 object-contain" /> */}
+                            
+                            <h2 className="text-2xl font-black italic uppercase tracking-tighter text-red-600" style={{fontFamily: "'Archivo Black', sans-serif", textShadow: "0 0 10px rgba(220, 38, 38, 0.8)"}}>
+                                ROBERT'S
+                            </h2>
+                            <h2 className="text-2xl font-black italic uppercase tracking-tighter text-red-600 leading-none" style={{fontFamily: "'Archivo Black', sans-serif", textShadow: "0 0 10px rgba(220, 38, 38, 0.8)"}}>
+                                VIDEO STORE
+                            </h2>
+                        </div>
+                    )}
 
                     {!isDetailsOpen && (
                         <div className="relative z-20 h-full flex flex-col justify-center p-16 animate-fade-in" key={`ui-${activeMovie?.id}`}>
