@@ -9,9 +9,14 @@
     <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.0/color-thief.umd.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Archivo+Black&family=Monoton&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Archivo+Black&family=Monoton&family=Righteous&family=Mr+Dafoe&display=swap" rel="stylesheet">
     
     <style>
+        :root {
+            /* Matched from main app */
+            --movie-neon: #ff3399;
+        }
+
         body { background-color: black; margin: 0; overflow: hidden; cursor: none; color: white; font-family: sans-serif; }
         
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
@@ -39,20 +44,42 @@
         /* Marquee Styling */
         .cinema-marquee {
             font-family: 'Monoton', cursive;
-            color: #ff0000;
-            text-shadow: 0 0 10px rgba(255, 0, 0, 0.8), 0 0 20px rgba(255, 0, 0, 0.6);
+            color: var(--movie-neon);
+            text-shadow: 0 0 10px rgba(255, 51, 153, 0.8), 0 0 20px rgba(255, 51, 153, 0.6);
             border: 4px dotted #ffcc00;
             padding: 15px 30px;
             display: inline-block;
             background: rgba(0,0,0,0.7);
             border-radius: 10px;
         }
+
+        /* Robert's Store Exact Logo CSS */
+        .logo-chrome { 
+            font-family: 'Righteous', cursive; 
+            font-size: 2.8em; 
+            margin: 0;
+            background: linear-gradient(#fff, #1a2a6c, var(--movie-neon)); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+            line-height: 1;
+            text-align: right;
+        }
+        .logo-neon { 
+            font-family: 'Mr Dafoe', cursive; 
+            font-size: 2.4em; 
+            margin-top: -18px; 
+            color: #fff; 
+            transform: rotate(-5deg); 
+            display: inline-block; 
+            text-shadow: 0 0 10px var(--movie-neon); 
+            text-align: right;
+        }
     </style>
 </head>
 <body>
     <div id="root">
         <div style="height: 100vh; background-color: black; display: flex; align-items: center; justify-content: center;">
-            <h1 style="color: #dc2626; font-size: 2rem; font-family: 'Share Tech Mono', monospace; letter-spacing: 0.2em; animation: pulse 2s infinite;">
+            <h1 style="color: var(--movie-neon); font-size: 2rem; font-family: 'Share Tech Mono', monospace; letter-spacing: 0.2em; animation: pulse 2s infinite;">
                 BOOTING CINEMA OS...
             </h1>
         </div>
@@ -63,7 +90,7 @@
             if (e.message && e.message.includes('import call expects')) return; 
             var rootDiv = document.getElementById('root');
             if (rootDiv && rootDiv.innerHTML.includes('BOOTING CINEMA OS')) {
-                rootDiv.innerHTML = '<div style="padding:40px; color:#ff00de; font-family:\'Share Tech Mono\', monospace; text-align:center; margin-top:20vh;"><h2>FATAL SYSTEM FAULT</h2><p style="color:white;">' + e.message + '</p></div>';
+                rootDiv.innerHTML = '<div style="padding:40px; color:var(--movie-neon); font-family:\'Share Tech Mono\', monospace; text-align:center; margin-top:20vh;"><h2>FATAL SYSTEM FAULT</h2><p style="color:white;">' + e.message + '</p></div>';
             }
         });
 
@@ -301,8 +328,8 @@
             if (loading) return (
                 <div className="h-screen bg-black flex items-center justify-center text-white font-sans">
                     <div className="animate-pulse flex flex-col items-center">
-                        <FilmIcon size={64} className="mb-4 text-red-600" />
-                        <p className="text-2xl tracking-[0.3em] uppercase font-black text-red-600" style={{fontFamily: "'Share Tech Mono', monospace"}}>Opening Vault...</p>
+                        <FilmIcon size={64} style={{ color: 'var(--movie-neon)' }} className="mb-4" />
+                        <p className="text-2xl tracking-[0.3em] uppercase font-black" style={{ color: 'var(--movie-neon)', fontFamily: "'Share Tech Mono', monospace"}}>Opening Vault...</p>
                     </div>
                 </div>
             );
@@ -324,18 +351,11 @@
                     {/* Bottom Left Clock */}
                     {!isDetailsOpen && <Clock />}
 
-                    {/* TOP RIGHT LOGO */}
+                    {/* TOP RIGHT EXACT LOGO */}
                     {!isDetailsOpen && (
-                        <div className="absolute top-12 right-16 z-40 flex flex-col items-end opacity-75 drop-shadow-2xl animate-fade-in">
-                            {/* If your logo is an image, delete the <h2> tags below and uncomment this <img> tag: */}
-                            {/* <img src="YOUR_LOGO_URL_HERE.png" alt="Robert's Video Store" className="h-16 object-contain" /> */}
-                            
-                            <h2 className="text-2xl font-black italic uppercase tracking-tighter text-red-600" style={{fontFamily: "'Archivo Black', sans-serif", textShadow: "0 0 10px rgba(220, 38, 38, 0.8)"}}>
-                                ROBERT'S
-                            </h2>
-                            <h2 className="text-2xl font-black italic uppercase tracking-tighter text-red-600 leading-none" style={{fontFamily: "'Archivo Black', sans-serif", textShadow: "0 0 10px rgba(220, 38, 38, 0.8)"}}>
-                                VIDEO STORE
-                            </h2>
+                        <div className="absolute top-12 right-16 z-40 flex flex-col items-end opacity-85 drop-shadow-2xl animate-fade-in" style={{ pointerEvents: 'none' }}>
+                            <h1 className="logo-chrome">ROBERT'S</h1>
+                            <div className="logo-neon">Video Store</div>
                         </div>
                     )}
 
@@ -365,7 +385,7 @@
                                 </div>
                                 
                                 <div className="flex items-center space-x-4 bg-black/60 border border-white/20 backdrop-blur-md w-fit px-6 py-3 rounded-full animate-pulse ml-2">
-                                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: dominantColor.replace('0.8', '1') }} />
+                                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: 'var(--movie-neon)' }} />
                                     <span className="text-xl font-bold tracking-[0.2em] uppercase text-white/90">Press OK for Details</span>
                                 </div>
                                 
@@ -409,7 +429,7 @@
                                             allowFullScreen
                                         ></iframe>
                                     ) : (
-                                        <div className="flex flex-col items-center justify-center text-red-600 animate-pulse opacity-60">
+                                        <div className="flex flex-col items-center justify-center animate-pulse opacity-60" style={{ color: 'var(--movie-neon)' }}>
                                             <FilmIcon size={64} className="mb-4" />
                                             <p className="text-xl tracking-[0.3em] uppercase font-black" style={{fontFamily: "'Share Tech Mono', monospace"}}>Warming Up Projector...</p>
                                         </div>
