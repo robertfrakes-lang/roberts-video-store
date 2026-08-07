@@ -18,15 +18,7 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .animate-fade-in { animation: fadeIn 1.5s ease-in-out forwards; }
 
-        /* Retro CRT Scanline Effects */
-        @keyframes scanline-sweep {
-            0% { transform: translateY(-100vh); }
-            100% { transform: translateY(100vh); }
-        }
-        .scanline-bar {
-            animation: scanline-sweep 8s linear infinite;
-            background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.1), transparent);
-        }
+        /* Retro CRT Pixel Grid Overlay (Sweeping scanline removed) */
         .crt-grid {
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
             background-size: 100% 3px, 3px 100%;
@@ -94,24 +86,53 @@
             const masterSheetRef = useRef([]);
             const isDetailsOpenRef = useRef(false);
             
-            // 1. SYNCS REF AND PUSHES HISTORY STATE FOR FIRE TV BACK BUTTON
+            // 1. SYNC REF SO EVENT LISTENERS KNOW IF MODAL IS OPEN
             useEffect(() => {
                 isDetailsOpenRef.current = isDetailsOpen;
-                // Push a fake history state when modal opens so the physical Back button has something to consume
-                if (isDetailsOpen) {
-                    window.history.pushState({ modalOpen: true }, '');
-                }
             }, [isDetailsOpen]);
 
-            // 2. CATCHES THE NATIVE SYSTEM BACK ACTION
+            // 2. BULLETPROOF FIRE TV BACK BUTTON TRAP
             useEffect(() => {
-                const handlePopState = (event) => {
+                // Instantly trap the browser history on mount
+                window.history.pushState("trapped", "");
+
+                // Listen for native OS back requests
+                const handlePopState = () => {
                     if (isDetailsOpenRef.current) {
-                        setIsDetailsOpen(false);
+                        setIsDetailsOpen(false); // Close details instead of exiting
+                    }
+                    // Re-push state so the app NEVER naturally exits back to the system launcher
+                    window.history.pushState("trapped", ""); 
+                };
+
+                // Listen for literal remote control hardware button presses
+                const handleKeyDown = (e) => {
+                    // Includes Amazon's explicit back key (10009) and generic android backs (4/27/8)
+                    const isBackKey = e.keyCode === 4 || e.keyCode === 27 || e.keyCode === 8 || e.keyCode === 10009 || e.keyCode === 461 || e.key === 'Escape' || e.key === 'Backspace' || e.key === 'GoBack';
+
+                    if (isBackKey) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (isDetailsOpenRef.current) {
+                            setIsDetailsOpen(false);
+                        }
+                        return;
+                    }
+                    
+                    // Enter / Select / Play opens Details & Trailer Modal
+                    if (!isDetailsOpenRef.current && (e.keyCode === 13 || e.key === 'Enter' || e.keyCode === 179)) {
+                        setIsDetailsOpen(true);
                     }
                 };
+                
+                // Mount listeners
                 window.addEventListener('popstate', handlePopState);
-                return () => window.removeEventListener('popstate', handlePopState);
+                window.addEventListener('keydown', handleKeyDown, true); // True = capture phase
+                
+                return () => {
+                    window.removeEventListener('popstate', handlePopState);
+                    window.removeEventListener('keydown', handleKeyDown, true);
+                };
             }, []);
 
             // Fetch the CSV data from Google
@@ -244,37 +265,6 @@
                 return () => clearInterval(interval);
             }, [movies, isDetailsOpen]);
 
-            // Fire TV Remote Control Logic & Back Button Catching
-            useEffect(() => {
-                const handleKeyDown = (e) => {
-                    // EXPLICIT HARDWARE FIX: Includes Amazon's 10009 and generic 461/4 TV codes
-                    const isBackKey = e.keyCode === 4 || e.keyCode === 27 || e.keyCode === 8 || e.keyCode === 10009 || e.keyCode === 461 || e.key === 'Escape' || e.key === 'Backspace' || e.key === 'GoBack';
-
-                    // If Details/Trailer is open and Back button is pressed
-                    if (isDetailsOpenRef.current && isBackKey) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        // Fire the history back to consume the fake state (which triggers popstate), or manually close if no state
-                        if (window.history.state && window.history.state.modalOpen) {
-                            window.history.back();
-                        } else {
-                            setIsDetailsOpen(false);
-                        }
-                        return;
-                    }
-                    
-                    // Enter / Select / Play opens Details & Trailer Modal
-                    if (!isDetailsOpenRef.current && (e.keyCode === 13 || e.key === 'Enter' || e.keyCode === 179)) {
-                        setIsDetailsOpen(true);
-                    }
-                };
-                
-                // Use capture phase (true) to intercept the back key before web view default exit handles it
-                window.addEventListener('keydown', handleKeyDown, true);
-                return () => window.removeEventListener('keydown', handleKeyDown, true);
-            }, [movies]);
-
             if (error) return (
                 <div className="h-screen bg-black flex flex-col items-center justify-center text-white p-10 text-center font-sans">
                     <AlertCircleIcon size={64} className="text-red-500 mb-4" />
@@ -305,9 +295,8 @@
                         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent" />
                     </div>
 
-                    {/* CRT Screen Effects */}
+                    {/* CRT Screen Effects (Static Grid Only) */}
                     <div className="absolute inset-0 crt-grid z-30" />
-                    <div className="absolute inset-0 z-30 pointer-events-none h-[15%] scanline-bar" />
 
                     {/* Lower Left Clock */}
                     {!isDetailsOpen && <Clock />}
